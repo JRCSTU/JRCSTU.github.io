@@ -1,0 +1,58 @@
+General parameters
+fuel_type	diesel
+engine_fuel_lower_heating_value	42650.04772
+fuel_carbon_content_percentage	85.7
+final_drive_ratio	3.692
+engine_capacity	2298.0
+engine_stroke	101.3
+idle_engine_speed_median	750.0
+engine_idle_fuel_consumption	0.067
+final drive ratio 3.692
+tyres	255/60R18
+gear_box_type	manual
+alternator_efficiency	0.67
+alternator_nominal_power	2.8
+alternator_nominal_voltage	14.0
+battery_capacity	70.0
+
+WLTP-H RLs and mass
+f0	243.74
+f1	1.6746
+f2	0.0528
+vehicle_mass	2403.56
+
+NEDC-H RLs and mass
+f0	201.7
+f1	1.65
+f2	0.0520
+vehicle_mass	2158
+
+gear_box_ratios	{4.685, 2.478, 1.623, 1.207, 1.0, 0.808}
+
+BAG VALUES
+co2_emission_extra_high	246.99
+co2_emission_high	193.15
+co2_emission_low	231.76
+co2_emission_medium	195.31
+Declared WLTP-H co2 	217.807
+
+Technologies
+YES Turbo
+YES BERS
+YES EGR
+NO Cylinder deactivation
+NO VVA
+NO fuel saving strategy
+NO gearbox thermal management
+NO lean burn
+NO regenerating systems
+NO S/S
+No torque converter
+
+T1 map
+full_load_powers	[26.2, 62.8, 83.8, 104.7, 115.89, 117.3, 120.0, 116.8, 104.6]
+full_load_speeds	[1000.0, 1500.0, 2000.0, 2500.0, 3000.0, 3500.0, 3750.0, 4000.0, 4250.0]
+
+WLTP-H drive mode
+n_dyno_axes	1
+n_wheel_drive	2
