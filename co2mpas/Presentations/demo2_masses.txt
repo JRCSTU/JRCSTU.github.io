@@ -1,0 +1,16 @@
+Vehicle masses
+
+WLTP-H
+Vehicle mass (empty) 	1933 	[kg]
+Max laden mass 		3421 	[kg]
+Mass in running order 	2010 	[kg]
+Test mass 		2512 	[kg]
+Dyno inertia 		2403.56 [kg]
+
+
+NEDC-H
+Vehicle mass (empty) 	1735 	[kg]
+Max laden mass 		3071 	[kg]
+Mass in running order 	1804 	[kg]
+Test mass 		2254 	[kg]
+Dyno inertia 		2158 	[kg]

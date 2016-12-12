@@ -1,0 +1,40 @@
+The vehicle is a 2.2980 Liter turbo compression ignition engine, fueled with diesel. 
+
+It is not equipped with Start-Stop technology. The vehicle has a brake energy recuperation system.
+
+The vehicle is equipped with Exhausted Gas Recirculation.
+
+The vehicle has a 4x2 drive and was tested on WLTP-H with 255/60R18 tyres.
+
+The vehicle is a manual transmission with the following gear box ratios: 4.685,2.478,1.623,1.207,1,0.808
+
+Fuel characteristics
+- lower heating value:42650.04772 [kJ/kg]
+- carbon content: 85.7 [%]
+
+Additional vehicle characteristics:
+Engine stroke:101.3 [mm]
+Engine idle speed:750.0	[rpm]
+Engine idle fuel consumption:0.067 [g/sec]
+Final drive ratios:3.692 [-]
+Battery capacity:70.0 [Ah]
+
+Alternator characteristics:
+- Nominal voltage: 14 [V]
+- Max power: 2.80 [kW]
+- efficiency: 0.67 [-]
+
+NEDC-H road loads:
+F0: 201.7 [N]
+F1: 1.65 [N/(km/h)]
+F2: 0.052 [N/(km/h)^2]
+
+WLTP-H road loads:
+F0: 243.74 [N]
+F1: 1.6746 [N/(km/h)]
+F2: 0.0528 [N/(km/h)^2]
+
+The WLTP-H test was performed starting at 23 C of the test cell and using 2-axis dyno.
+The CO2 bag values recoreded during WLTP-H subphases are: 1:231.76; 2:195.31; 3:193.15; 4:246.99 [gCO2/km].
+
+The NEDC-H CO2 declared value by the manufacturer is: 217.807 [gCO2/km]
