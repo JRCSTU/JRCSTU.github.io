@@ -13,6 +13,8 @@ Fuel characteristics
 - carbon content: 85.7 [%]
 
 Additional vehicle characteristics:
+Dyno inertia WLTP-H 2403.56 [kg]
+Dyno inertia NEDC-H 2158 [kg]
 Engine stroke:101.3 [mm]
 Engine idle speed:750.0	[rpm]
 Engine idle fuel consumption:0.067 [g/sec]
