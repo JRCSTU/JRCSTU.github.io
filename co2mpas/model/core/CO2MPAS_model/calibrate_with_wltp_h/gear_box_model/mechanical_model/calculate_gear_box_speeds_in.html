@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;gear_box_speeds_in&#39;</span>], weight<span style="color: #666666">=25</span>)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_gear_box_speeds_in</span>(
+        gears, velocities, velocity_speed_ratios, stop_velocity):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates Gear box speed vector [RPM].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gears:</span>
+<span style="color: #BA2121; font-style: italic">        Gear vector [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type gears: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocity_speed_ratios:</span>
+<span style="color: #BA2121; font-style: italic">        Constant velocity speed ratios of the gear box [km/(h*RPM)].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocity_speed_ratios: dict[int | float]</span>
+
+<span style="color: #BA2121; font-style: italic">    :param stop_velocity:</span>
+<span style="color: #BA2121; font-style: italic">        Maximum velocity to consider the vehicle stopped [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type stop_velocity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Gear box speed vector [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    speeds <span style="color: #666666">=</span> np<span style="color: #666666">.</span>array(velocities, dtype<span style="color: #666666">=</span><span style="color: #008000">float</span>)
+    n <span style="color: #666666">=</span> velocities <span style="color: #666666">&gt;=</span> stop_velocity
+    b <span style="color: #666666">=</span> <span style="color: #666666">~</span>n
+    <span style="color: #008000; font-weight: bold">for</span> k, r <span style="color: #AA22FF; font-weight: bold">in</span> velocity_speed_ratios<span style="color: #666666">.</span>items():
+        <span style="color: #008000; font-weight: bold">if</span> r:
+            speeds[n <span style="color: #666666">&amp;</span> (gears <span style="color: #666666">==</span> k)] <span style="color: #666666">/=</span> r
+        <span style="color: #008000; font-weight: bold">else</span>:
+            b <span style="color: #666666">|=</span> gears <span style="color: #666666">==</span> k
+
+    speeds[b] <span style="color: #666666">=</span> <span style="color: #666666">0.0</span>
+    <span style="color: #008000; font-weight: bold">return</span> speeds
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(
+    dsp, inputs_kwargs<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>, inputs_defaults<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>, outputs<span style="color: #666666">=</span>_cmd_flags
+)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">parse_cmd_flags</span>(cmd_flags<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">None</span>):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Parses the command line options.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param cmd_flags:</span>
+<span style="color: #BA2121; font-style: italic">        Command line options.</span>
+<span style="color: #BA2121; font-style: italic">    :type cmd_flags: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Default parameters of process model.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: tuple</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    flags <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>combine_dicts(cmd_flags <span style="color: #AA22FF; font-weight: bold">or</span> {}, base<span style="color: #666666">=</span>{
+        <span style="color: #BA2121">&#39;only_summary&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>,
+        <span style="color: #BA2121">&#39;hard_validation&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>,
+        <span style="color: #BA2121">&#39;declaration_mode&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>,
+        <span style="color: #BA2121">&#39;enable_selector&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>,
+        <span style="color: #BA2121">&#39;type_approval_mode&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>,
+        <span style="color: #BA2121">&#39;encryption_keys&#39;</span>: <span style="color: #008000; font-weight: bold">None</span>,
+        <span style="color: #BA2121">&#39;sign_key&#39;</span>: <span style="color: #008000; font-weight: bold">None</span>,
+        <span style="color: #BA2121">&#39;output_template&#39;</span>: sh<span style="color: #666666">.</span>NONE,
+        <span style="color: #BA2121">&#39;encryption_keys_passwords&#39;</span>: <span style="color: #008000; font-weight: bold">None</span>,
+        <span style="color: #BA2121">&#39;output_folder&#39;</span>: <span style="color: #BA2121">&#39;./outputs&#39;</span>,
+        <span style="color: #BA2121">&#39;augmented_summary&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>
+    })
+    flags[<span style="color: #BA2121">&#39;declaration_mode&#39;</span>] <span style="color: #666666">|=</span> flags[<span style="color: #BA2121">&#39;type_approval_mode&#39;</span>]
+    flags[<span style="color: #BA2121">&#39;hard_validation&#39;</span>] <span style="color: #666666">|=</span> flags[<span style="color: #BA2121">&#39;declaration_mode&#39;</span>]
+    <span style="color: #008000; font-weight: bold">if</span> flags[<span style="color: #BA2121">&#39;declaration_mode&#39;</span>] <span style="color: #AA22FF; font-weight: bold">and</span> <span style="color: #AA22FF; font-weight: bold">not</span> flags[<span style="color: #BA2121">&#39;type_approval_mode&#39;</span>] <span style="color: #AA22FF; font-weight: bold">and</span> \
+            flags[<span style="color: #BA2121">&#39;enable_selector&#39;</span>]:
+        log<span style="color: #666666">.</span>info(
+            <span style="color: #BA2121">&#39;Since CO2MPAS is launched in declaration mode the option &#39;</span>
+            <span style="color: #BA2121">&#39;--enable-selector is not used.</span><span style="color: #BB6622; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+            <span style="color: #BA2121">&#39;If you want to use it remove -DM from the cmd.&#39;</span>
+        )
+        flags[<span style="color: #BA2121">&#39;enable_selector&#39;</span>] <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+    <span style="color: #008000; font-weight: bold">return</span> sh<span style="color: #666666">.</span>selector(_cmd_flags, flags, output_type<span style="color: #666666">=</span><span style="color: #BA2121">&#39;list&#39;</span>)
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

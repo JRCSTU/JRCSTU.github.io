@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;gears&#39;</span>], weight<span style="color: #666666">=10</span>)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">identify_gears_v1</span>(
+        times, velocities, accelerations, motive_powers, on_engine,
+        engine_speeds_out, velocity_speed_ratios, stop_velocity,
+        plateau_acceleration, change_gear_window_width, idle_engine_speed,
+        correct_gear):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Identifies gear time series [-].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param times:</span>
+<span style="color: #BA2121; font-style: italic">        Time vector [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type times: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param accelerations:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration vector [m/s2].</span>
+<span style="color: #BA2121; font-style: italic">    :type accelerations: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motive_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Motive power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type motive_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param on_engine:</span>
+<span style="color: #BA2121; font-style: italic">        If the engine is on [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type on_engine: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_speeds_out:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_speeds_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocity_speed_ratios:</span>
+<span style="color: #BA2121; font-style: italic">        Constant velocity speed ratios of the gear box [km/(h*RPM)].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocity_speed_ratios: dict[int | float]</span>
+
+<span style="color: #BA2121; font-style: italic">    :param stop_velocity:</span>
+<span style="color: #BA2121; font-style: italic">        Maximum velocity to consider the vehicle stopped [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type stop_velocity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param plateau_acceleration:</span>
+<span style="color: #BA2121; font-style: italic">        Maximum acceleration to be at constant velocity [m/s2].</span>
+<span style="color: #BA2121; font-style: italic">    :type plateau_acceleration: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param change_gear_window_width:</span>
+<span style="color: #BA2121; font-style: italic">        Time window used to apply gear change filters [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type change_gear_window_width: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param idle_engine_speed:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed idle median and std [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type idle_engine_speed: (float, float)</span>
+
+<span style="color: #BA2121; font-style: italic">    :param correct_gear:</span>
+<span style="color: #BA2121; font-style: italic">        A function to correct the gear predicted.</span>
+<span style="color: #BA2121; font-style: italic">    :type correct_gear: callable</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Gear vector identified [-].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    n <span style="color: #666666">=</span> [k <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #AA22FF; font-weight: bold">in</span> velocity_speed_ratios <span style="color: #008000; font-weight: bold">if</span> k <span style="color: #666666">!=</span> <span style="color: #666666">0</span>]
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #008000">len</span>(n) <span style="color: #666666">==</span> <span style="color: #666666">1</span>:
+        gears <span style="color: #666666">=</span> np<span style="color: #666666">.</span>ones_like(times, <span style="color: #008000">int</span>) <span style="color: #666666">*</span> n[<span style="color: #666666">0</span>]
+        gears[velocities <span style="color: #666666">&lt;=</span> stop_velocity] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+        <span style="color: #008000; font-weight: bold">return</span> gears
+    <span style="color: #008000; font-weight: bold">with</span> np<span style="color: #666666">.</span>errstate(divide<span style="color: #666666">=</span><span style="color: #BA2121">&#39;ignore&#39;</span>, invalid<span style="color: #666666">=</span><span style="color: #BA2121">&#39;ignore&#39;</span>):
+        r <span style="color: #666666">=</span> velocities <span style="color: #666666">/</span> engine_speeds_out
+
+    idle <span style="color: #666666">=</span> (idle_engine_speed[<span style="color: #666666">0</span>] <span style="color: #666666">-</span> idle_engine_speed[<span style="color: #666666">1</span>],
+            idle_engine_speed[<span style="color: #666666">0</span>] <span style="color: #666666">+</span> idle_engine_speed[<span style="color: #666666">1</span>])
+    r[engine_speeds_out <span style="color: #666666">&lt;=</span> idle[<span style="color: #666666">0</span>]] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+
+    _vsr <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>combine_dicts(velocity_speed_ratios, base<span style="color: #666666">=</span>{<span style="color: #666666">0</span>: <span style="color: #666666">0</span>})
+    g, vsr <span style="color: #666666">=</span> np<span style="color: #666666">.</span>array([(k, v) <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">sorted</span>(_vsr<span style="color: #666666">.</span>items())])<span style="color: #666666">.</span>T
+    dr <span style="color: #666666">=</span> np<span style="color: #666666">.</span>abs(vsr[:, <span style="color: #008000; font-weight: bold">None</span>] <span style="color: #666666">-</span> r)
+    i, j <span style="color: #666666">=</span> np<span style="color: #666666">.</span>argmin(dr, <span style="color: #666666">0</span>), np<span style="color: #666666">.</span>arange(times<span style="color: #666666">.</span>shape[<span style="color: #666666">0</span>])
+    b <span style="color: #666666">=</span> velocities <span style="color: #666666">&lt;=</span> vsr[i] <span style="color: #666666">*</span> idle[<span style="color: #666666">0</span>]
+    <span style="color: #008000; font-weight: bold">if</span> idle[<span style="color: #666666">1</span>]:
+        b <span style="color: #666666">|=</span> np<span style="color: #666666">.</span>abs(velocities <span style="color: #666666">/</span> idle[<span style="color: #666666">1</span>] <span style="color: #666666">-</span> r) <span style="color: #666666">&lt;</span> dr[i, j]
+    b <span style="color: #666666">=</span> (velocities <span style="color: #666666">&lt;=</span> stop_velocity) <span style="color: #666666">|</span> (b <span style="color: #666666">&amp;</span> (accelerations <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>))
+    gears <span style="color: #666666">=</span> np<span style="color: #666666">.</span>where(b, <span style="color: #666666">0</span>, g[i])<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>)
+    gears <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>median_filter(times, gears, change_gear_window_width)
+    gears <span style="color: #666666">=</span> _correct_gear_shifts(times, r, gears, velocity_speed_ratios)
+    gears <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>clear_fluctuations(times, gears, change_gear_window_width)
+    anomalies <span style="color: #666666">=</span> velocities <span style="color: #666666">&gt;</span> stop_velocity
+    anomalies <span style="color: #666666">&amp;=</span> (accelerations <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>) <span style="color: #666666">|</span> <span style="color: #666666">~</span>on_engine
+    anomalies <span style="color: #666666">|=</span> accelerations <span style="color: #666666">&gt;</span> plateau_acceleration
+    anomalies <span style="color: #666666">&amp;=</span> gears <span style="color: #666666">==</span> <span style="color: #666666">0</span>
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">..control.conventional</span> <span style="color: #008000; font-weight: bold">import</span> calculate_engine_speeds_out_hot
+    ds <span style="color: #666666">=</span> calculate_engine_speeds_out_hot(calculate_gear_box_speeds_in(
+        gears, velocities, velocity_speed_ratios, stop_velocity
+    ), on_engine, idle_engine_speed) <span style="color: #666666">-</span> engine_speeds_out
+    i <span style="color: #666666">=</span> np<span style="color: #666666">.</span>where(on_engine <span style="color: #666666">&amp;</span> <span style="color: #666666">~</span>anomalies)[<span style="color: #666666">0</span>]
+    med <span style="color: #666666">=</span> np<span style="color: #666666">.</span>nanmedian(ds[i])
+    std <span style="color: #666666">=</span> <span style="color: #666666">3</span> <span style="color: #666666">*</span> <span style="color: #008000">max</span>(<span style="color: #666666">50</span>, co2_utl<span style="color: #666666">.</span>mad(ds[i], med<span style="color: #666666">=</span>med))
+    anomalies[i] <span style="color: #666666">|=</span> np<span style="color: #666666">.</span>abs(ds[i] <span style="color: #666666">-</span> med) <span style="color: #666666">&gt;=</span> std
+    b <span style="color: #666666">=</span> (gears <span style="color: #666666">==</span> <span style="color: #666666">0</span>) <span style="color: #666666">&amp;</span> (velocities <span style="color: #666666">&lt;=</span> stop_velocity)
+    anomalies[b] <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+    anomalies <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>clear_fluctuations(
+        times, anomalies<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>), change_gear_window_width
+    )
+    <span style="color: #008000; font-weight: bold">for</span> i, j <span style="color: #AA22FF; font-weight: bold">in</span> sh<span style="color: #666666">.</span>pairwise(_shift(gears)):
+        anomalies[i:j] <span style="color: #666666">=</span> anomalies[i:j]<span style="color: #666666">.</span>mean() <span style="color: #666666">&gt;</span> <span style="color: #666666">.3</span>
+
+    gsm <span style="color: #666666">=</span> _calibrate_gsm(
+        velocity_speed_ratios, on_engine, anomalies, gears, velocities,
+        stop_velocity, idle_engine_speed
+    )<span style="color: #666666">.</span>init_gear(
+        gears, times, velocities, accelerations, motive_powers,
+        correct_gear<span style="color: #666666">=</span>correct_gear
+    )
+    <span style="color: #008000; font-weight: bold">for</span> i, v <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(anomalies):
+        <span style="color: #008000; font-weight: bold">if</span> v:
+            gears[i] <span style="color: #666666">=</span> gsm(i)
+    gears <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>median_filter(times, gears, change_gear_window_width)
+    gears <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>clear_fluctuations(times, gears, change_gear_window_width)
+    <span style="color: #008000; font-weight: bold">return</span> gears<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>)
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

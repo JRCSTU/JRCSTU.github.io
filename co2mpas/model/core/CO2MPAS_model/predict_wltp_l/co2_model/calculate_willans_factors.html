@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_willans_factors</span>(
+        co2_params_calibrated, engine_fuel_lower_heating_value, engine_stroke,
+        engine_capacity, min_engine_on_speed, fmep_model, engine_speeds_out,
+        engine_powers_out, times, velocities, accelerations, motive_powers,
+        engine_coolant_temperatures, missing_powers, angle_slopes):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates the Willans factors.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param co2_params_calibrated:</span>
+<span style="color: #BA2121; font-style: italic">        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).</span>
+
+<span style="color: #BA2121; font-style: italic">        The missing parameters are set equal to zero.</span>
+<span style="color: #BA2121; font-style: italic">    :type co2_params_calibrated: lmfit.Parameters</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_fuel_lower_heating_value:</span>
+<span style="color: #BA2121; font-style: italic">        Fuel lower heating value [kJ/kg].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_fuel_lower_heating_value: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_stroke:</span>
+<span style="color: #BA2121; font-style: italic">        Engine stroke [mm].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_stroke: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_capacity:</span>
+<span style="color: #BA2121; font-style: italic">        Engine capacity [cm3].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_capacity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param min_engine_on_speed:</span>
+<span style="color: #BA2121; font-style: italic">        Minimum engine speed to consider the engine to be on [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type min_engine_on_speed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param fmep_model:</span>
+<span style="color: #BA2121; font-style: italic">        Engine FMEP model.</span>
+<span style="color: #BA2121; font-style: italic">    :type fmep_model: FMEP</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_speeds_out:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed vector [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_speeds_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_powers_out:</span>
+<span style="color: #BA2121; font-style: italic">        Engine power vector [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_powers_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param times:</span>
+<span style="color: #BA2121; font-style: italic">        Time vector [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type times: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param accelerations:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration vector [m/s2].</span>
+<span style="color: #BA2121; font-style: italic">    :type accelerations: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motive_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Motive power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type motive_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_coolant_temperatures:</span>
+<span style="color: #BA2121; font-style: italic">        Engine coolant temperature vector [°C].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_coolant_temperatures: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param missing_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Missing engine power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type missing_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param angle_slopes:</span>
+<span style="color: #BA2121; font-style: italic">        Angle slope vector [rad].</span>
+<span style="color: #BA2121; font-style: italic">    :type angle_slopes: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Willans factors:</span>
+
+<span style="color: #BA2121; font-style: italic">        - av_velocities                         [km/h]</span>
+<span style="color: #BA2121; font-style: italic">        - av_slope                              [rad]</span>
+<span style="color: #BA2121; font-style: italic">        - distance                              [km]</span>
+<span style="color: #BA2121; font-style: italic">        - init_temp                             [°C]</span>
+<span style="color: #BA2121; font-style: italic">        - av_temp                               [°C]</span>
+<span style="color: #BA2121; font-style: italic">        - end_temp                              [°C]</span>
+<span style="color: #BA2121; font-style: italic">        - av_vel_pos_mov_pow                    [kw/h]</span>
+<span style="color: #BA2121; font-style: italic">        - av_pos_motive_powers                  [kW]</span>
+<span style="color: #BA2121; font-style: italic">        - sec_pos_mov_pow                       [s]</span>
+<span style="color: #BA2121; font-style: italic">        - av_neg_motive_powers                  [kW]</span>
+<span style="color: #BA2121; font-style: italic">        - sec_neg_mov_pow                       [s]</span>
+<span style="color: #BA2121; font-style: italic">        - av_pos_accelerations                  [m/s2]</span>
+<span style="color: #BA2121; font-style: italic">        - av_engine_speeds_out_pos_pow          [RPM]</span>
+<span style="color: #BA2121; font-style: italic">        - av_pos_engine_powers_out              [kW]</span>
+<span style="color: #BA2121; font-style: italic">        - engine_bmep_pos_pow                   [bar]</span>
+<span style="color: #BA2121; font-style: italic">        - mean_piston_speed_pos_pow             [m/s]</span>
+<span style="color: #BA2121; font-style: italic">        - fuel_mep_pos_pow                      [bar]</span>
+<span style="color: #BA2121; font-style: italic">        - fuel_consumption_pos_pow              [g/sec]</span>
+<span style="color: #BA2121; font-style: italic">        - willans_a                             [g/kWh]</span>
+<span style="color: #BA2121; font-style: italic">        - willans_b                             [g/h]</span>
+<span style="color: #BA2121; font-style: italic">        - specific_fuel_consumption             [g/kWh]</span>
+<span style="color: #BA2121; font-style: italic">        - indicated_efficiency                  [-]</span>
+<span style="color: #BA2121; font-style: italic">        - willans_efficiency                    [-]</span>
+
+<span style="color: #BA2121; font-style: italic">    :rtype: dict</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">.engine</span> <span style="color: #008000; font-weight: bold">import</span> calculate_mean_piston_speeds
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">.engine.fc</span> <span style="color: #008000; font-weight: bold">import</span> calculate_brake_mean_effective_pressures
+    av <span style="color: #666666">=</span> np<span style="color: #666666">.</span>average
+
+    w <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros_like(times, dtype<span style="color: #666666">=</span><span style="color: #008000">float</span>)
+    t <span style="color: #666666">=</span> (times[:<span style="color: #666666">-1</span>] <span style="color: #666666">+</span> times[<span style="color: #666666">1</span>:]) <span style="color: #666666">/</span> <span style="color: #666666">2</span>
+    <span style="color: #408080; font-style: italic"># noinspection PyUnresolvedReferences</span>
+    w[<span style="color: #666666">0</span>], w[<span style="color: #666666">1</span>:<span style="color: #666666">-1</span>], w[<span style="color: #666666">-1</span>] <span style="color: #666666">=</span> t[<span style="color: #666666">0</span>] <span style="color: #666666">-</span> times[<span style="color: #666666">0</span>], np<span style="color: #666666">.</span>diff(t), times[<span style="color: #666666">-1</span>] <span style="color: #666666">-</span> t[<span style="color: #666666">-1</span>]
+
+    f <span style="color: #666666">=</span> {
+        <span style="color: #BA2121">&#39;av_velocities&#39;</span>: av(velocities, weights<span style="color: #666666">=</span>w),  <span style="color: #408080; font-style: italic"># [km/h]</span>
+        <span style="color: #BA2121">&#39;av_slope&#39;</span>: av(angle_slopes, weights<span style="color: #666666">=</span>w),
+        <span style="color: #BA2121">&#39;has_sufficient_power&#39;</span>: <span style="color: #666666">1</span> <span style="color: #666666">-</span> av(missing_powers <span style="color: #666666">!=</span> <span style="color: #666666">0</span>, weights<span style="color: #666666">=</span>w),
+        <span style="color: #BA2121">&#39;max_power_required&#39;</span>: <span style="color: #008000">max</span>(engine_powers_out <span style="color: #666666">+</span> missing_powers)
+    }
+
+    f[<span style="color: #BA2121">&#39;distance&#39;</span>] <span style="color: #666666">=</span> f[<span style="color: #BA2121">&#39;av_velocities&#39;</span>] <span style="color: #666666">*</span> (times[<span style="color: #666666">-1</span>] <span style="color: #666666">-</span> times[<span style="color: #666666">0</span>]) <span style="color: #666666">/</span> <span style="color: #666666">3600.0</span>  <span style="color: #408080; font-style: italic"># [km]</span>
+
+    b <span style="color: #666666">=</span> engine_powers_out <span style="color: #666666">&gt;=</span> <span style="color: #666666">0</span>
+    <span style="color: #008000; font-weight: bold">if</span> b<span style="color: #666666">.</span>any():
+        p <span style="color: #666666">=</span> co2_params_calibrated<span style="color: #666666">.</span>valuesdict()
+        _w <span style="color: #666666">=</span> w[b]
+        av_s <span style="color: #666666">=</span> av(engine_speeds_out[b], weights<span style="color: #666666">=</span>_w)
+        av_p <span style="color: #666666">=</span> av(engine_powers_out[b], weights<span style="color: #666666">=</span>_w)
+        av_mp <span style="color: #666666">=</span> av(missing_powers[b], weights<span style="color: #666666">=</span>_w)
+
+        n_p <span style="color: #666666">=</span> calculate_brake_mean_effective_pressures(
+            av_s, av_p, engine_capacity, min_engine_on_speed
+        )
+        n_s <span style="color: #666666">=</span> calculate_mean_piston_speeds(av_s, engine_stroke)
+
+        f_mep, wfa <span style="color: #666666">=</span> fmep_model(p, n_s, n_p, <span style="color: #666666">1</span>)[:<span style="color: #666666">2</span>]
+
+        c <span style="color: #666666">=</span> engine_capacity <span style="color: #666666">/</span> engine_fuel_lower_heating_value <span style="color: #666666">*</span> av_s
+        fc <span style="color: #666666">=</span> f_mep <span style="color: #666666">*</span> c <span style="color: #666666">/</span> <span style="color: #666666">1200.0</span>
+        ieff <span style="color: #666666">=</span> av_p <span style="color: #666666">/</span> (fc <span style="color: #666666">*</span> engine_fuel_lower_heating_value) <span style="color: #666666">*</span> <span style="color: #666666">1000.0</span>
+
+        willans_a <span style="color: #666666">=</span> <span style="color: #666666">3600000.0</span> <span style="color: #666666">/</span> engine_fuel_lower_heating_value <span style="color: #666666">/</span> wfa
+        willans_b <span style="color: #666666">=</span> fmep_model(p, n_s, <span style="color: #666666">0</span>, <span style="color: #666666">1</span>)[<span style="color: #666666">0</span>] <span style="color: #666666">*</span> c <span style="color: #666666">*</span> <span style="color: #666666">3.0</span>
+
+        sfc <span style="color: #666666">=</span> willans_a <span style="color: #666666">+</span> willans_b <span style="color: #666666">/</span> av_p
+
+        willans_eff <span style="color: #666666">=</span> <span style="color: #666666">3600000.0</span> <span style="color: #666666">/</span> (sfc <span style="color: #666666">*</span> engine_fuel_lower_heating_value)
+
+        f<span style="color: #666666">.</span>update({
+            <span style="color: #BA2121">&#39;av_engine_speeds_out_pos_pow&#39;</span>: av_s,  <span style="color: #408080; font-style: italic"># [RPM]</span>
+            <span style="color: #BA2121">&#39;av_pos_engine_powers_out&#39;</span>: av_p,  <span style="color: #408080; font-style: italic"># [kW]</span>
+            <span style="color: #BA2121">&#39;av_missing_powers_pos_pow&#39;</span>: av_mp,  <span style="color: #408080; font-style: italic"># [kW]</span>
+            <span style="color: #BA2121">&#39;engine_bmep_pos_pow&#39;</span>: n_p,  <span style="color: #408080; font-style: italic"># [bar]</span>
+            <span style="color: #BA2121">&#39;mean_piston_speed_pos_pow&#39;</span>: n_s,  <span style="color: #408080; font-style: italic"># [m/s]</span>
+            <span style="color: #BA2121">&#39;fuel_mep_pos_pow&#39;</span>: f_mep,  <span style="color: #408080; font-style: italic"># [bar]</span>
+            <span style="color: #BA2121">&#39;fuel_consumption_pos_pow&#39;</span>: fc,  <span style="color: #408080; font-style: italic"># [g/sec]</span>
+            <span style="color: #BA2121">&#39;willans_a&#39;</span>: willans_a,  <span style="color: #408080; font-style: italic"># [g/kW]</span>
+            <span style="color: #BA2121">&#39;willans_b&#39;</span>: willans_b,  <span style="color: #408080; font-style: italic"># [g]</span>
+            <span style="color: #BA2121">&#39;specific_fuel_consumption&#39;</span>: sfc,  <span style="color: #408080; font-style: italic"># [g/kWh]</span>
+            <span style="color: #BA2121">&#39;indicated_efficiency&#39;</span>: ieff,  <span style="color: #408080; font-style: italic"># [-]</span>
+            <span style="color: #BA2121">&#39;willans_efficiency&#39;</span>: willans_eff  <span style="color: #408080; font-style: italic"># [-]</span>
+        })
+
+    b <span style="color: #666666">=</span> motive_powers <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>
+    <span style="color: #008000; font-weight: bold">if</span> b<span style="color: #666666">.</span>any():
+        _w <span style="color: #666666">=</span> w[b]
+        f[<span style="color: #BA2121">&#39;av_vel_pos_mov_pow&#39;</span>] <span style="color: #666666">=</span> av(velocities[b], weights<span style="color: #666666">=</span>_w)  <span style="color: #408080; font-style: italic"># [km/h]</span>
+        f[<span style="color: #BA2121">&#39;av_pos_motive_powers&#39;</span>] <span style="color: #666666">=</span> av(motive_powers[b], weights<span style="color: #666666">=</span>_w)  <span style="color: #408080; font-style: italic"># [kW]</span>
+        f[<span style="color: #BA2121">&#39;sec_pos_mov_pow&#39;</span>] <span style="color: #666666">=</span> np<span style="color: #666666">.</span>sum(_w)  <span style="color: #408080; font-style: italic"># [s]</span>
+
+    b <span style="color: #666666">=</span> accelerations <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>
+    <span style="color: #008000; font-weight: bold">if</span> b<span style="color: #666666">.</span>any():
+        _w <span style="color: #666666">=</span> w[b]
+        f[<span style="color: #BA2121">&#39;av_pos_accelerations&#39;</span>] <span style="color: #666666">=</span> av(accelerations[b], weights<span style="color: #666666">=</span>_w)  <span style="color: #408080; font-style: italic"># [m/s2]</span>
+
+    b <span style="color: #666666">=</span> motive_powers <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>
+    <span style="color: #008000; font-weight: bold">if</span> b<span style="color: #666666">.</span>any():
+        _w <span style="color: #666666">=</span> w[b]
+        f[<span style="color: #BA2121">&#39;av_neg_motive_powers&#39;</span>] <span style="color: #666666">=</span> av(motive_powers[b], weights<span style="color: #666666">=</span>_w)  <span style="color: #408080; font-style: italic"># [kW]</span>
+        f[<span style="color: #BA2121">&#39;sec_neg_mov_pow&#39;</span>] <span style="color: #666666">=</span> np<span style="color: #666666">.</span>sum(_w)  <span style="color: #408080; font-style: italic"># [s]</span>
+
+    f[<span style="color: #BA2121">&#39;init_temp&#39;</span>] <span style="color: #666666">=</span> engine_coolant_temperatures[<span style="color: #666666">0</span>]  <span style="color: #408080; font-style: italic"># [°C]</span>
+    f[<span style="color: #BA2121">&#39;av_temp&#39;</span>] <span style="color: #666666">=</span> av(engine_coolant_temperatures, weights<span style="color: #666666">=</span>w)  <span style="color: #408080; font-style: italic"># [°C]</span>
+    f[<span style="color: #BA2121">&#39;end_temp&#39;</span>] <span style="color: #666666">=</span> engine_coolant_temperatures[<span style="color: #666666">-1</span>]  <span style="color: #408080; font-style: italic"># [°C]</span>
+
+    <span style="color: #008000; font-weight: bold">return</span> f
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

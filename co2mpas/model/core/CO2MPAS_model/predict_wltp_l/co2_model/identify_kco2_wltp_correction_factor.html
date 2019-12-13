@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(
+    dsp, inputs_kwargs<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;kco2_wltp_correction_factor&#39;</span>]
+)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">identify_kco2_wltp_correction_factor</span>(
+        drive_battery_electric_powers, service_battery_electric_powers,
+        co2_emissions, times, force_on_engine, after_treatment_warm_up_phases,
+        velocities, is_hybrid<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Identifies the kco2 correction factor [g/Wh].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param drive_battery_electric_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Drive battery electric power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type drive_battery_electric_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_electric_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Service battery electric power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_electric_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param force_on_engine:</span>
+<span style="color: #BA2121; font-style: italic">        Phases when engine is on because parallel mode is forced [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type force_on_engine: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param after_treatment_warm_up_phases:</span>
+<span style="color: #BA2121; font-style: italic">        Phases when engine speed is affected by the after treatment warm up [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type after_treatment_warm_up_phases: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Vehicle velocity [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param co2_emissions:</span>
+<span style="color: #BA2121; font-style: italic">        CO2 instantaneous emissions vector [CO2g/s].</span>
+<span style="color: #BA2121; font-style: italic">    :type co2_emissions: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param times:</span>
+<span style="color: #BA2121; font-style: italic">        Time vector.</span>
+<span style="color: #BA2121; font-style: italic">    :type times: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param is_hybrid:</span>
+<span style="color: #BA2121; font-style: italic">        Is the vehicle hybrid?</span>
+<span style="color: #BA2121; font-style: italic">    :type is_hybrid: bool</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        kco2 correction factor [g/Wh].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: float</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #AA22FF; font-weight: bold">not</span> is_hybrid:
+        <span style="color: #008000; font-weight: bold">return</span> sh<span style="color: #666666">.</span>NONE
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">scipy.integrate</span> <span style="color: #008000; font-weight: bold">import</span> cumtrapz
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">sklearn.linear_model</span> <span style="color: #008000; font-weight: bold">import</span> RANSACRegressor, Lasso
+    b <span style="color: #666666">=</span> <span style="color: #666666">~</span>(force_on_engine <span style="color: #666666">|</span> after_treatment_warm_up_phases)
+    e <span style="color: #666666">=</span> np<span style="color: #666666">.</span>where(
+        b, drive_battery_electric_powers <span style="color: #666666">+</span> service_battery_electric_powers, <span style="color: #666666">0</span>
+    )
+    e <span style="color: #666666">=</span> cumtrapz(e, times, initial<span style="color: #666666">=0</span>) <span style="color: #666666">/</span> <span style="color: #666666">3.6</span>
+    co2 <span style="color: #666666">=</span> cumtrapz(np<span style="color: #666666">.</span>where(b, co2_emissions, <span style="color: #666666">0</span>), times, initial<span style="color: #666666">=0</span>)
+    km <span style="color: #666666">=</span> cumtrapz(np<span style="color: #666666">.</span>where(b, velocities <span style="color: #666666">/</span> <span style="color: #666666">3.6</span>, <span style="color: #666666">0</span>), times, initial<span style="color: #666666">=0</span>) <span style="color: #666666">/</span> <span style="color: #666666">1000</span>
+    <span style="color: #408080; font-style: italic"># noinspection PyTypeChecker</span>
+    it <span style="color: #666666">=</span> co2_utl<span style="color: #666666">.</span>sliding_window(<span style="color: #008000">list</span>(<span style="color: #008000">zip</span>(km, <span style="color: #008000">zip</span>(km, e, co2))), <span style="color: #666666">5</span>)
+    d <span style="color: #666666">=</span> np<span style="color: #666666">.</span>diff(np<span style="color: #666666">.</span>array([(v[<span style="color: #666666">0</span>][<span style="color: #666666">1</span>], v[<span style="color: #666666">-1</span>][<span style="color: #666666">1</span>]) <span style="color: #008000; font-weight: bold">for</span> v <span style="color: #AA22FF; font-weight: bold">in</span> it]), axis<span style="color: #666666">=1</span>)[:, <span style="color: #666666">0</span>, :]<span style="color: #666666">.</span>T
+    e, co2 <span style="color: #666666">=</span> d[<span style="color: #666666">1</span>:] <span style="color: #666666">/</span> d[<span style="color: #666666">0</span>]
+    d0 <span style="color: #666666">=</span> t0 <span style="color: #666666">=</span> <span style="color: #666666">-</span><span style="color: #008000">float</span>(<span style="color: #BA2121">&#39;inf&#39;</span>)
+    b, dkm <span style="color: #666666">=</span> [], <span style="color: #666666">.5</span>
+    dt <span style="color: #666666">=</span> dkm <span style="color: #666666">/</span> np<span style="color: #666666">.</span>mean(velocities) <span style="color: #666666">*</span> <span style="color: #666666">3600</span>
+    <span style="color: #008000; font-weight: bold">for</span> i, (d, t) <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(<span style="color: #008000">zip</span>(km, times)):
+        <span style="color: #008000; font-weight: bold">if</span> d <span style="color: #666666">&gt;</span> d0 <span style="color: #AA22FF; font-weight: bold">and</span> t <span style="color: #666666">&gt;</span> t0:
+            d0, t0 <span style="color: #666666">=</span> d <span style="color: #666666">+</span> dkm, t <span style="color: #666666">+</span> dt
+            b<span style="color: #666666">.</span>append(i)
+    b <span style="color: #666666">=</span> np<span style="color: #666666">.</span>array(b)
+    m <span style="color: #666666">=</span> RANSACRegressor(
+        random_state<span style="color: #666666">=0</span>,
+        base_estimator<span style="color: #666666">=</span>Lasso(random_state<span style="color: #666666">=0</span>, positive<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)
+    )<span style="color: #666666">.</span>fit(e[b, <span style="color: #008000; font-weight: bold">None</span>], co2[b])
+    <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000">float</span>(m<span style="color: #666666">.</span>estimator_<span style="color: #666666">.</span>coef_)
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

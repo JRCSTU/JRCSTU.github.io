@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;on_engine&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">identify_on_engine</span>(
+        times, engine_speeds_out, idle_engine_speed,
+        min_time_engine_on_after_start):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Identifies if the engine is on [-].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param times:</span>
+<span style="color: #BA2121; font-style: italic">        Time vector [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type times: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_speeds_out:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_speeds_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param idle_engine_speed:</span>
+<span style="color: #BA2121; font-style: italic">        Idle engine speed and its standard deviation [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type idle_engine_speed: (float, float)</span>
+
+<span style="color: #BA2121; font-style: italic">    :param min_time_engine_on_after_start:</span>
+<span style="color: #BA2121; font-style: italic">        Minimum time of engine on after a start [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type min_time_engine_on_after_start: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        If the engine is on [-].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    on_engine <span style="color: #666666">=</span> engine_speeds_out <span style="color: #666666">&gt;</span> idle_engine_speed[<span style="color: #666666">0</span>] <span style="color: #666666">-</span> idle_engine_speed[<span style="color: #666666">1</span>]
+    mask <span style="color: #666666">=</span> np<span style="color: #666666">.</span>where(identify_engine_starts(on_engine))[<span style="color: #666666">0</span>] <span style="color: #666666">+</span> <span style="color: #666666">1</span>
+    ts <span style="color: #666666">=</span> np<span style="color: #666666">.</span>asarray(times[mask], dtype<span style="color: #666666">=</span><span style="color: #008000">float</span>)
+    ts <span style="color: #666666">+=</span> min_time_engine_on_after_start <span style="color: #666666">+</span> dfl<span style="color: #666666">.</span>EPS
+    <span style="color: #008000; font-weight: bold">for</span> i, j <span style="color: #AA22FF; font-weight: bold">in</span> np<span style="color: #666666">.</span>column_stack((mask, np<span style="color: #666666">.</span>searchsorted(times, ts))):
+        on_engine[i:j] <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">True</span>
+
+    <span style="color: #008000; font-weight: bold">return</span> on_engine
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;accelerations&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_accelerations_v1</span>(
+        vehicle_mass, inertial_factor, motive_forces, climbing_force,
+        aerodynamic_resistances, rolling_resistance, velocity_resistances):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates the acceleration from motive forces [m/s2].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param vehicle_mass:</span>
+<span style="color: #BA2121; font-style: italic">        Vehicle mass [kg].</span>
+<span style="color: #BA2121; font-style: italic">    :type vehicle_mass: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param inertial_factor:</span>
+<span style="color: #BA2121; font-style: italic">        Factor that considers the rotational inertia [%].</span>
+<span style="color: #BA2121; font-style: italic">    :type inertial_factor: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motive_forces:</span>
+<span style="color: #BA2121; font-style: italic">        Motive forces [N].</span>
+<span style="color: #BA2121; font-style: italic">    :type motive_forces: numpy.array | float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param climbing_force:</span>
+<span style="color: #BA2121; font-style: italic">        Vehicle climbing resistance [N].</span>
+<span style="color: #BA2121; font-style: italic">    :type climbing_force: float | numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param aerodynamic_resistances:</span>
+<span style="color: #BA2121; font-style: italic">        Aerodynamic resistance vector [N].</span>
+<span style="color: #BA2121; font-style: italic">    :type aerodynamic_resistances: numpy.array | float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param rolling_resistance:</span>
+<span style="color: #BA2121; font-style: italic">        Rolling resistance force [N].</span>
+<span style="color: #BA2121; font-style: italic">    :type rolling_resistance: float | numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocity_resistances:</span>
+<span style="color: #BA2121; font-style: italic">        Forces function of velocity [N].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocity_resistances: numpy.array | float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration vector [m/s2].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    acc <span style="color: #666666">=</span> motive_forces <span style="color: #666666">-</span> climbing_force <span style="color: #666666">-</span> aerodynamic_resistances
+    acc <span style="color: #666666">-=</span> rolling_resistance <span style="color: #666666">+</span> velocity_resistances
+    acc <span style="color: #666666">/=</span> vehicle_mass <span style="color: #666666">*</span> (<span style="color: #666666">1</span> <span style="color: #666666">+</span> inertial_factor <span style="color: #666666">/</span> <span style="color: #666666">100</span>)
+    <span style="color: #008000; font-weight: bold">return</span> acc
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

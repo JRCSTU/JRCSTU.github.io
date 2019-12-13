@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;gross_engine_powers_out&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_gross_engine_powers_out</span>(
+        clutch_tc_powers, belt_efficiency, on_engine, gear_box_type, on_idle,
+        alternator_powers, motor_p0_powers, motor_p1_powers,
+        motor_p2_planetary_powers):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates the gross engine power (pre-losses) [kW].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param clutch_tc_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Clutch or torque converter power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type clutch_tc_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param belt_efficiency:</span>
+<span style="color: #BA2121; font-style: italic">        Belt efficiency [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type belt_efficiency: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param on_engine:</span>
+<span style="color: #BA2121; font-style: italic">        If the engine is on [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type on_engine: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_type:</span>
+<span style="color: #BA2121; font-style: italic">        Gear box type (manual or automatic or cvt).</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_type: str</span>
+
+<span style="color: #BA2121; font-style: italic">    :param on_idle:</span>
+<span style="color: #BA2121; font-style: italic">        If the engine is on idle [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type on_idle: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param alternator_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Alternator power [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type alternator_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motor_p0_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Power at motor P0 [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type motor_p0_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motor_p1_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Power at motor P1 [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type motor_p1_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param motor_p2_planetary_powers:</span>
+<span style="color: #BA2121; font-style: italic">        Power at planetary motor P2 [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type motor_p2_planetary_powers: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Gross engine power (pre-losses) [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    p, b <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros_like(clutch_tc_powers, dtype<span style="color: #666666">=</span><span style="color: #008000">float</span>), on_engine
+    p[b] <span style="color: #666666">=</span> clutch_tc_powers[b]
+
+    <span style="color: #008000; font-weight: bold">if</span> gear_box_type <span style="color: #666666">==</span> <span style="color: #BA2121">&#39;manual&#39;</span>:
+        p[on_idle <span style="color: #666666">&amp;</span> (p <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>)] <span style="color: #666666">=</span> <span style="color: #666666">0.0</span>
+    eff <span style="color: #666666">=</span> np<span style="color: #666666">.</span>where(motor_p0_powers[b] <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>, belt_efficiency, <span style="color: #666666">1</span> <span style="color: #666666">/</span> belt_efficiency)
+    p[b] <span style="color: #666666">-=</span> alternator_powers[b] <span style="color: #666666">+</span> motor_p0_powers[b] <span style="color: #666666">*</span> eff
+    p[b] <span style="color: #666666">-=</span> motor_p1_powers[b] <span style="color: #666666">+</span> motor_p2_planetary_powers[b]
+    <span style="color: #008000; font-weight: bold">return</span> p
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

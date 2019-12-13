@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">write_to_excel</span>(dfs, output_template):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Writes DataFrames to excel.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param dfs:</span>
+<span style="color: #BA2121; font-style: italic">        DataFrames of vehicle output report.</span>
+<span style="color: #BA2121; font-style: italic">    :type dfs: dict[str, pandas.DataFrame]</span>
+
+<span style="color: #BA2121; font-style: italic">    :param output_template:</span>
+<span style="color: #BA2121; font-style: italic">        Template output.</span>
+<span style="color: #BA2121; font-style: italic">    :type output_template: str</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Excel output file.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: io.BytesIO</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">pandas</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">pd</span>
+    log<span style="color: #666666">.</span>debug(
+        <span style="color: #BA2121">&#39;Writing into xl-file based on template(</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">)...&#39;</span>, output_template
+    )
+    writer, fd <span style="color: #666666">=</span> _clone_excel(output_template)
+
+    xlref, calculate_sheets, charts <span style="color: #666666">=</span> [], <span style="color: #008000">sorted</span>(writer<span style="color: #666666">.</span>sheets), []
+    <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">sorted</span>(dfs<span style="color: #666666">.</span>items(), key<span style="color: #666666">=</span>_sort_sheets):
+        <span style="color: #008000; font-weight: bold">if</span> <span style="color: #AA22FF; font-weight: bold">not</span> k<span style="color: #666666">.</span>startswith(<span style="color: #BA2121">&#39;graphs.&#39;</span>):
+            down <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">True</span>
+            <span style="color: #008000; font-weight: bold">if</span> k<span style="color: #666666">.</span>endswith(<span style="color: #BA2121">&#39;pa&#39;</span>):
+                kw <span style="color: #666666">=</span> {<span style="color: #BA2121">&#39;named_ranges&#39;</span>: (<span style="color: #BA2121">&#39;rows&#39;</span>,), <span style="color: #BA2121">&#39;index&#39;</span>: <span style="color: #008000; font-weight: bold">True</span>, <span style="color: #BA2121">&#39;k0&#39;</span>: <span style="color: #666666">1</span>}
+            <span style="color: #008000; font-weight: bold">elif</span> k<span style="color: #666666">.</span>endswith(<span style="color: #BA2121">&#39;ts&#39;</span>):
+                kw <span style="color: #666666">=</span> {<span style="color: #BA2121">&#39;named_ranges&#39;</span>: (<span style="color: #BA2121">&#39;columns&#39;</span>,), <span style="color: #BA2121">&#39;index&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>, <span style="color: #BA2121">&#39;k0&#39;</span>: <span style="color: #666666">1</span>}
+            <span style="color: #008000; font-weight: bold">elif</span> k<span style="color: #666666">.</span>endswith(<span style="color: #BA2121">&#39;proc_info&#39;</span>):
+                down <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+                kw <span style="color: #666666">=</span> {<span style="color: #BA2121">&#39;named_ranges&#39;</span>: ()}
+            <span style="color: #008000; font-weight: bold">else</span>:
+                kw <span style="color: #666666">=</span> {}
+
+            xlref<span style="color: #666666">.</span>extend(_write_sheets(writer, k, v, down<span style="color: #666666">=</span>down, <span style="color: #666666">**</span>kw))
+        <span style="color: #008000; font-weight: bold">else</span>:
+            <span style="color: #008000; font-weight: bold">try</span>:
+                sheet <span style="color: #666666">=</span> writer<span style="color: #666666">.</span>book<span style="color: #666666">.</span>add_worksheet(k)
+            <span style="color: #008000; font-weight: bold">except</span> <span style="color: #D2413A; font-weight: bold">AttributeError</span>:
+                sheet <span style="color: #666666">=</span> writer<span style="color: #666666">.</span>book<span style="color: #666666">.</span>create_sheet(title<span style="color: #666666">=</span>k)
+            charts<span style="color: #666666">.</span>append((sheet, v))
+
+    <span style="color: #008000; font-weight: bold">for</span> sheet, v <span style="color: #AA22FF; font-weight: bold">in</span> charts:
+        _chart2excel(writer, sheet, v)
+
+    <span style="color: #008000; font-weight: bold">if</span> xlref:
+        xlref <span style="color: #666666">=</span> <span style="color: #008000">sorted</span>(sh<span style="color: #666666">.</span>combine_dicts(<span style="color: #666666">*</span>[x[<span style="color: #666666">1</span>] <span style="color: #008000; font-weight: bold">for</span> x <span style="color: #AA22FF; font-weight: bold">in</span> xlref])<span style="color: #666666">.</span>items())
+        xlref <span style="color: #666666">=</span> pd<span style="color: #666666">.</span>DataFrame(xlref)
+        xlref<span style="color: #666666">.</span>set_index([<span style="color: #666666">0</span>], inplace<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)
+        _df2excel(
+            writer, <span style="color: #BA2121">&#39;xlref&#39;</span>, xlref, named_ranges<span style="color: #666666">=</span>(), index<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>, header<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">False</span>
+        )
+
+    writer<span style="color: #666666">.</span>save()
+    <span style="color: #008000; font-weight: bold">return</span> fd
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

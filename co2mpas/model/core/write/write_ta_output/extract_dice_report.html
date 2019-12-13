@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;dice_report&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">extract_dice_report</span>(co2mpas_version, dice, start_time, report):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Extract DICE report.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param co2mpas_version:</span>
+<span style="color: #BA2121; font-style: italic">        co2mpas version.</span>
+<span style="color: #BA2121; font-style: italic">    :type co2mpas_version: str</span>
+
+<span style="color: #BA2121; font-style: italic">    :param dice:</span>
+<span style="color: #BA2121; font-style: italic">        DICE data.</span>
+<span style="color: #BA2121; font-style: italic">    :type dice: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :param start_time:</span>
+<span style="color: #BA2121; font-style: italic">        Run start time.</span>
+<span style="color: #BA2121; font-style: italic">    :type start_time: datetime.datetime</span>
+
+<span style="color: #BA2121; font-style: italic">    :param report:</span>
+<span style="color: #BA2121; font-style: italic">        Vehicle output report.</span>
+<span style="color: #BA2121; font-style: italic">    :type report: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        DICE report.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: dict</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    res <span style="color: #666666">=</span> {
+        <span style="color: #BA2121">&#39;info&#39;</span>: {
+            <span style="color: #BA2121">&#39;vehicle_family_id&#39;</span>: dice[<span style="color: #BA2121">&#39;vehicle_family_id&#39;</span>],
+            <span style="color: #BA2121">&#39;CO2MPAS_version&#39;</span>: co2mpas_version,
+            <span style="color: #BA2121">&#39;DICE_version&#39;</span>: __version__,
+            <span style="color: #BA2121">&#39;datetime&#39;</span>: start_time<span style="color: #666666">.</span>strftime(<span style="color: #BA2121">&#39;%Y/%m/</span><span style="color: #BB6688; font-weight: bold">%d</span><span style="color: #BA2121">-%H:%M:%S&#39;</span>)
+        }
+    }
+    are_in, get_in <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>are_in_nested_dicts, sh<span style="color: #666666">.</span>get_nested_dicts
+    <span style="color: #408080; font-style: italic"># deviation</span>
+    keys <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;summary&#39;</span>, <span style="color: #BA2121">&#39;comparison&#39;</span>, <span style="color: #BA2121">&#39;prediction&#39;</span>
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys):
+        deviation <span style="color: #666666">=</span> [<span style="color: #BA2121">&#39;declared_co2_emission_value&#39;</span>, <span style="color: #BA2121">&#39;prediction_target_ratio&#39;</span>]
+        <span style="color: #008000; font-weight: bold">if</span> dice<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;input_type&#39;</span>) <span style="color: #666666">==</span> <span style="color: #BA2121">&#39;OVC-HEV&#39;</span>:
+            deviation[<span style="color: #666666">0</span>] <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;declared_sustaining_co2_emission_value&#39;</span>
+        <span style="color: #008000; font-weight: bold">for</span> cycle, d <span style="color: #AA22FF; font-weight: bold">in</span> get_in(report, <span style="color: #666666">*</span>keys)<span style="color: #666666">.</span>items():
+            <span style="color: #008000; font-weight: bold">if</span> are_in(d, <span style="color: #666666">*</span>deviation):
+                v <span style="color: #666666">=</span> (get_in(d, <span style="color: #666666">*</span>deviation) <span style="color: #666666">-</span> <span style="color: #666666">1</span>) <span style="color: #666666">*</span> <span style="color: #666666">100</span>
+                get_in(res, <span style="color: #BA2121">&#39;deviation&#39;</span>)[cycle] <span style="color: #666666">=</span> v
+
+    <span style="color: #408080; font-style: italic"># gears</span>
+    keys <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;summary&#39;</span>, <span style="color: #BA2121">&#39;comparison&#39;</span>, <span style="color: #BA2121">&#39;calibration&#39;</span>
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys):
+        <span style="color: #008000; font-weight: bold">for</span> cycle, d <span style="color: #AA22FF; font-weight: bold">in</span> get_in(report, <span style="color: #666666">*</span>keys)<span style="color: #666666">.</span>items():
+            <span style="color: #008000; font-weight: bold">if</span> cycle<span style="color: #666666">.</span>startswith(<span style="color: #BA2121">&#39;wltp_&#39;</span>) <span style="color: #AA22FF; font-weight: bold">and</span> are_in(d, <span style="color: #BA2121">&#39;gears&#39;</span>):
+                get_in(res, <span style="color: #BA2121">&#39;gears&#39;</span>)[cycle] <span style="color: #666666">=</span> get_in(d, <span style="color: #BA2121">&#39;gears&#39;</span>)
+
+    <span style="color: #408080; font-style: italic"># vehicle</span>
+    keys <span style="color: #666666">=</span> [(<span style="color: #BA2121">&#39;summary&#39;</span>, <span style="color: #BA2121">&#39;results&#39;</span>, <span style="color: #BA2121">&#39;vehicle&#39;</span>), (<span style="color: #BA2121">&#39;prediction&#39;</span>, <span style="color: #BA2121">&#39;output&#39;</span>)]
+    vehicle <span style="color: #666666">=</span> (
+        <span style="color: #BA2121">&#39;fuel_type&#39;</span>, <span style="color: #BA2121">&#39;engine_capacity&#39;</span>, <span style="color: #BA2121">&#39;gear_box_type&#39;</span>, <span style="color: #BA2121">&#39;engine_is_turbo&#39;</span>,
+        <span style="color: #BA2121">&#39;engine_max_power&#39;</span>, <span style="color: #BA2121">&#39;engine_speed_at_max_power&#39;</span>,
+        <span style="color: #BA2121">&#39;service_battery_delta_state_of_charge&#39;</span>,
+        <span style="color: #BA2121">&#39;drive_battery_delta_state_of_charge&#39;</span>
+    )
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>]):
+        <span style="color: #008000; font-weight: bold">for</span> cycle, d <span style="color: #AA22FF; font-weight: bold">in</span> get_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>])<span style="color: #666666">.</span>items():
+            <span style="color: #008000; font-weight: bold">if</span> are_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>]):
+                v <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>selector(vehicle, get_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>]), allow_miss<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)
+                <span style="color: #008000; font-weight: bold">if</span> v:
+                    get_in(res, <span style="color: #BA2121">&#39;vehicle&#39;</span>, cycle)<span style="color: #666666">.</span>update(v)
+
+    <span style="color: #408080; font-style: italic"># declared</span>
+    keys <span style="color: #666666">=</span> [
+        (<span style="color: #BA2121">&#39;summary&#39;</span>, <span style="color: #BA2121">&#39;results&#39;</span>, <span style="color: #BA2121">&#39;declared_co2_emission&#39;</span>),
+        (<span style="color: #BA2121">&#39;prediction&#39;</span>, <span style="color: #BA2121">&#39;target&#39;</span>, <span style="color: #BA2121">&#39;declared_co2_emission_value&#39;</span>)
+    ]
+    declared <span style="color: #666666">=</span> {}
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>]):
+        <span style="color: #008000; font-weight: bold">for</span> cycle, d <span style="color: #AA22FF; font-weight: bold">in</span> get_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>])<span style="color: #666666">.</span>items():
+            <span style="color: #008000; font-weight: bold">if</span> are_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>]):
+                declared[cycle] <span style="color: #666666">=</span> get_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>])
+
+    <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #BA2121">&#39;hl&#39;</span>:
+        i, j <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;wltp_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">&#39;</span> <span style="color: #666666">%</span> k, <span style="color: #BA2121">&#39;nedc_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">&#39;</span> <span style="color: #666666">%</span> k
+        k <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;declared_wltp_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">_vs_declared_nedc_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">&#39;</span> <span style="color: #666666">%</span> (k, k)
+        <span style="color: #008000; font-weight: bold">if</span> i <span style="color: #AA22FF; font-weight: bold">in</span> declared <span style="color: #AA22FF; font-weight: bold">and</span> j <span style="color: #AA22FF; font-weight: bold">in</span> declared:
+            get_in(res, <span style="color: #BA2121">&#39;ratios&#39;</span>)[k] <span style="color: #666666">=</span> declared[i] <span style="color: #666666">/</span> declared[j]
+
+    <span style="color: #408080; font-style: italic"># corrected</span>
+    keys <span style="color: #666666">=</span> [
+        (<span style="color: #BA2121">&#39;summary&#39;</span>, <span style="color: #BA2121">&#39;results&#39;</span>, <span style="color: #BA2121">&#39;corrected_co2_emission&#39;</span>),
+        (<span style="color: #BA2121">&#39;prediction&#39;</span>, <span style="color: #BA2121">&#39;target&#39;</span>, <span style="color: #BA2121">&#39;corrected_co2_emission_value&#39;</span>)
+    ]
+    corrected <span style="color: #666666">=</span> {}
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>]):
+        <span style="color: #008000; font-weight: bold">for</span> cycle, d <span style="color: #AA22FF; font-weight: bold">in</span> get_in(report, <span style="color: #666666">*</span>keys[<span style="color: #666666">0</span>])<span style="color: #666666">.</span>items():
+            <span style="color: #008000; font-weight: bold">if</span> are_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>]):
+                corrected[cycle] <span style="color: #666666">=</span> get_in(d, <span style="color: #666666">*</span>keys[<span style="color: #666666">1</span>])
+    <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #BA2121">&#39;hl&#39;</span>:
+        i <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;wltp_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">&#39;</span> <span style="color: #666666">%</span> k
+        k <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;declared_wltp_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">_vs_corrected_wltp_</span><span style="color: #BB6688; font-weight: bold">%s</span><span style="color: #BA2121">&#39;</span> <span style="color: #666666">%</span> (k, k)
+        <span style="color: #008000; font-weight: bold">if</span> i <span style="color: #AA22FF; font-weight: bold">in</span> declared <span style="color: #AA22FF; font-weight: bold">and</span> i <span style="color: #AA22FF; font-weight: bold">in</span> corrected:
+            get_in(res, <span style="color: #BA2121">&#39;ratios&#39;</span>)[k] <span style="color: #666666">=</span> declared[i] <span style="color: #666666">/</span> corrected[i]
+
+    <span style="color: #408080; font-style: italic"># model scores</span>
+    keys <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;data&#39;</span>, <span style="color: #BA2121">&#39;calibration&#39;</span>, <span style="color: #BA2121">&#39;model_scores&#39;</span>
+    model_scores <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;model_selections&#39;</span>, <span style="color: #BA2121">&#39;param_selections&#39;</span>, <span style="color: #BA2121">&#39;score_by_model&#39;</span>, \
+                   <span style="color: #BA2121">&#39;scores&#39;</span>
+    <span style="color: #008000; font-weight: bold">if</span> are_in(report, <span style="color: #666666">*</span>keys):
+        get_in(res, <span style="color: #BA2121">&#39;model_scores&#39;</span>)<span style="color: #666666">.</span>update(sh<span style="color: #666666">.</span>selector(
+            model_scores, get_in(report, <span style="color: #666666">*</span>keys), allow_miss<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>
+        ))
+
+    res <span style="color: #666666">=</span> copy<span style="color: #666666">.</span>deepcopy(res)
+    <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">list</span>(_stack(res)):
+        <span style="color: #008000; font-weight: bold">if</span> <span style="color: #008000">isinstance</span>(v, np<span style="color: #666666">.</span>generic):
+            _get_nested(res, <span style="color: #666666">*</span>k[:<span style="color: #666666">-1</span>])[k[<span style="color: #666666">-1</span>]] <span style="color: #666666">=</span> v<span style="color: #666666">.</span>item()
+
+    <span style="color: #008000; font-weight: bold">return</span> res
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

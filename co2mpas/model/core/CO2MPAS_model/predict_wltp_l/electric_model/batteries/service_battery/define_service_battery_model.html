@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;service_battery_model&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">define_service_battery_model</span>(
+        service_battery_status_model, dcdc_current_model,
+        alternator_current_model, has_energy_recuperation,
+        service_battery_initialization_time, service_battery_load,
+        initial_service_battery_state_of_charge,
+        service_battery_nominal_voltage, service_battery_capacity):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Define a service battery model.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_status_model:</span>
+<span style="color: #BA2121; font-style: italic">        A function that predicts the service battery charging status.</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_status_model: BatteryStatusModel</span>
+
+<span style="color: #BA2121; font-style: italic">    :param dcdc_current_model:</span>
+<span style="color: #BA2121; font-style: italic">        DC/DC converter current model.</span>
+<span style="color: #BA2121; font-style: italic">    :type dcdc_current_model: callable</span>
+
+<span style="color: #BA2121; font-style: italic">    :param alternator_current_model:</span>
+<span style="color: #BA2121; font-style: italic">        Alternator current model.</span>
+<span style="color: #BA2121; font-style: italic">    :type alternator_current_model: callable</span>
+
+<span style="color: #BA2121; font-style: italic">    :param has_energy_recuperation:</span>
+<span style="color: #BA2121; font-style: italic">        Is the vehicle equipped with any brake energy recuperation technology?</span>
+<span style="color: #BA2121; font-style: italic">    :type has_energy_recuperation: bool</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_initialization_time:</span>
+<span style="color: #BA2121; font-style: italic">        Service battery initialization time delta [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_initialization_time: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_load:</span>
+<span style="color: #BA2121; font-style: italic">        Service electric load (engine off and on) [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_load: float, float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param initial_service_battery_state_of_charge:</span>
+<span style="color: #BA2121; font-style: italic">        Initial state of charge of the service battery [%].</span>
+<span style="color: #BA2121; font-style: italic">    :type initial_service_battery_state_of_charge: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_nominal_voltage:</span>
+<span style="color: #BA2121; font-style: italic">        Service battery nominal voltage [V].</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_nominal_voltage: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param service_battery_capacity:</span>
+<span style="color: #BA2121; font-style: italic">        Service battery capacity [Ah].</span>
+<span style="color: #BA2121; font-style: italic">    :type service_battery_capacity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Service battery model.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: ServiceBatteryModel</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">return</span> ServiceBatteryModel(
+        service_battery_status_model, dcdc_current_model,
+        alternator_current_model, has_energy_recuperation,
+        service_battery_initialization_time, service_battery_load,
+        initial_service_battery_state_of_charge,
+        service_battery_nominal_voltage, service_battery_capacity
+    )
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;clutch_speed_model&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calibrate_clutch_speed_model</span>(
+        clutch_phases, accelerations, clutch_tc_speeds_delta, velocities,
+        gear_box_speeds_in, gears):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calibrate clutch speed model.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param clutch_phases:</span>
+<span style="color: #BA2121; font-style: italic">        When the clutch is active [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type clutch_phases: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param accelerations:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration vector [m/s2].</span>
+<span style="color: #BA2121; font-style: italic">    :type accelerations: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param clutch_tc_speeds_delta:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed delta due to the clutch [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type clutch_tc_speeds_delta: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_speeds_in:</span>
+<span style="color: #BA2121; font-style: italic">        Gear box speed vector [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_speeds_in: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gears:</span>
+<span style="color: #BA2121; font-style: italic">        Gear vector [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type gears: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Clutch speed model.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: callable</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    model <span style="color: #666666">=</span> _no_model
+    <span style="color: #008000; font-weight: bold">if</span> clutch_phases<span style="color: #666666">.</span>sum() <span style="color: #666666">&gt;</span> <span style="color: #666666">10</span>:
+        <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">co2mpas.utils</span> <span style="color: #008000; font-weight: bold">import</span> mae
+        <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">sklearn.pipeline</span> <span style="color: #008000; font-weight: bold">import</span> Pipeline
+        <span style="color: #408080; font-style: italic"># noinspection PyProtectedMember</span>
+        <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">..engine._thermal</span> <span style="color: #008000; font-weight: bold">import</span> _SelectFromModel, _XGBRegressor
+        X <span style="color: #666666">=</span> np<span style="color: #666666">.</span>column_stack(
+            (accelerations, velocities, gear_box_speeds_in, gears)
+        )[clutch_phases]
+        y <span style="color: #666666">=</span> clutch_tc_speeds_delta[clutch_phases]
+
+        <span style="color: #408080; font-style: italic"># noinspection PyArgumentEqualDefault</span>
+        mdl <span style="color: #666666">=</span> _XGBRegressor(
+            max_depth<span style="color: #666666">=2</span>,
+            n_estimators<span style="color: #666666">=</span><span style="color: #008000">int</span>(<span style="color: #008000">min</span>(<span style="color: #666666">300.</span>, <span style="color: #666666">0.25</span> <span style="color: #666666">*</span> (<span style="color: #008000">len</span>(y) <span style="color: #666666">-</span> <span style="color: #666666">1</span>))),
+            random_state<span style="color: #666666">=0</span>,
+            objective<span style="color: #666666">=</span><span style="color: #BA2121">&#39;reg:squarederror&#39;</span>
+        )
+        mdl <span style="color: #666666">=</span> Pipeline([
+            (<span style="color: #BA2121">&#39;feature_selection&#39;</span>, _SelectFromModel(mdl, <span style="color: #BA2121">&#39;0.8*median&#39;</span>)),
+            (<span style="color: #BA2121">&#39;classification&#39;</span>, mdl)
+        ])
+        mdl<span style="color: #666666">.</span>fit(X, y)
+        <span style="color: #008000; font-weight: bold">if</span> mae(mdl<span style="color: #666666">.</span>predict(X), y) <span style="color: #666666">&lt;</span> mae(<span style="color: #666666">0</span>, y):
+            keys <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;accelerations&#39;</span>, <span style="color: #BA2121">&#39;velocities&#39;</span>, <span style="color: #BA2121">&#39;gear_box_speeds_in&#39;</span>, <span style="color: #BA2121">&#39;gears&#39;</span>
+
+            <span style="color: #408080; font-style: italic"># noinspection PyUnusedLocal,PyMissingOrEmptyDocstring</span>
+            <span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">model</span>(times, <span style="color: #666666">**</span>kwargs):
+                <span style="color: #008000; font-weight: bold">return</span> mdl<span style="color: #666666">.</span>predict(np<span style="color: #666666">.</span>column_stack(sh<span style="color: #666666">.</span>selector(keys, kwargs)))
+    <span style="color: #008000; font-weight: bold">return</span> model
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

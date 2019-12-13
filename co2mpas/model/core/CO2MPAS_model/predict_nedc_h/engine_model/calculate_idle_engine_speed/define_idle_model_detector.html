@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;idle_model_detector&#39;</span>], weight<span style="color: #666666">=100</span>)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">define_idle_model_detector</span>(
+        velocities, engine_speeds_out, stop_velocity, min_engine_on_speed):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Defines idle engine speed model detector.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_speeds_out:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed vector [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_speeds_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param stop_velocity:</span>
+<span style="color: #BA2121; font-style: italic">        Maximum velocity to consider the vehicle stopped [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type stop_velocity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param min_engine_on_speed:</span>
+<span style="color: #BA2121; font-style: italic">        Minimum engine speed to consider the engine to be on [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type min_engine_on_speed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Idle engine speed model detector.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: sklearn.cluster.DBSCAN</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    b <span style="color: #666666">=</span> (velocities <span style="color: #666666">&lt;</span> stop_velocity) <span style="color: #666666">&amp;</span> (engine_speeds_out <span style="color: #666666">&gt;</span> min_engine_on_speed)
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #AA22FF; font-weight: bold">not</span> b<span style="color: #666666">.</span>any():
+        <span style="color: #008000; font-weight: bold">return</span> sh<span style="color: #666666">.</span>NONE
+    x <span style="color: #666666">=</span> engine_speeds_out[b, <span style="color: #008000; font-weight: bold">None</span>]
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">._idle</span> <span style="color: #008000; font-weight: bold">import</span> _IdleDetector
+    model <span style="color: #666666">=</span> _IdleDetector(eps<span style="color: #666666">=</span>dfl<span style="color: #666666">.</span>functions<span style="color: #666666">.</span>define_idle_model_detector<span style="color: #666666">.</span>EPS)
+    model<span style="color: #666666">.</span>fit(x)
+    <span style="color: #008000; font-weight: bold">return</span> model
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

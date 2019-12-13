@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(
+    dsp, inputs_kwargs<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>, inputs_defaults<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>,
+    outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;co2_params_initial_guess&#39;</span>, <span style="color: #BA2121">&#39;initial_friction_params&#39;</span>]
+)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">define_initial_co2_emission_model_params_guess</span>(
+        co2_params, engine_type, engine_thermostat_temperature,
+        engine_thermostat_temperature_window,
+        engine_n_cylinders<span style="color: #666666">=</span>dfl<span style="color: #666666">.</span>values<span style="color: #666666">.</span>engine_n_cylinders,
+        is_cycle_hot<span style="color: #666666">=</span>dfl<span style="color: #666666">.</span>values<span style="color: #666666">.</span>is_cycle_hot):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Selects initial guess and bounds of co2 emission model params.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param co2_params:</span>
+<span style="color: #BA2121; font-style: italic">        CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).</span>
+<span style="color: #BA2121; font-style: italic">    :type co2_params: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_type:</span>
+<span style="color: #BA2121; font-style: italic">        Engine type (positive turbo, positive natural aspiration, compression).</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_type: str</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_thermostat_temperature:</span>
+<span style="color: #BA2121; font-style: italic">        Engine normalization temperature [°C].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_thermostat_temperature: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_thermostat_temperature_window:</span>
+<span style="color: #BA2121; font-style: italic">        Thermostat engine temperature limits [°C].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_thermostat_temperature_window: (float, float)</span>
+
+<span style="color: #BA2121; font-style: italic">    :param engine_n_cylinders:</span>
+<span style="color: #BA2121; font-style: italic">        Number of engine cylinders [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type engine_n_cylinders: int</span>
+
+<span style="color: #BA2121; font-style: italic">    :param is_cycle_hot:</span>
+<span style="color: #BA2121; font-style: italic">        Is an hot cycle?</span>
+<span style="color: #BA2121; font-style: italic">    :type is_cycle_hot: bool, optional</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Initial guess of co2 emission model params and of friction params.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: lmfit.Parameters, list[float]</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">lmfit</span>
+    <span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">collections</span>
+    bounds <span style="color: #666666">=</span> {}  <span style="color: #408080; font-style: italic"># Parameters bounds.</span>
+    par <span style="color: #666666">=</span> dfl<span style="color: #666666">.</span>functions<span style="color: #666666">.</span>define_initial_co2_emission_model_params_guess
+    default <span style="color: #666666">=</span> collections<span style="color: #666666">.</span>OrderedDict(
+        copy<span style="color: #666666">.</span>deepcopy(par<span style="color: #666666">.</span>CO2_PARAMS[engine_type])
+    )
+    default[<span style="color: #BA2121">&#39;trg&#39;</span>] <span style="color: #666666">=</span> {
+        <span style="color: #BA2121">&#39;value&#39;</span>: engine_thermostat_temperature,
+        <span style="color: #BA2121">&#39;min&#39;</span>: engine_thermostat_temperature_window[<span style="color: #666666">0</span>],
+        <span style="color: #BA2121">&#39;max&#39;</span>: engine_thermostat_temperature_window[<span style="color: #666666">1</span>],
+        <span style="color: #BA2121">&#39;vary&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>
+    }
+
+    keys, n <span style="color: #666666">=</span> (<span style="color: #BA2121">&#39;l&#39;</span>, <span style="color: #BA2121">&#39;l2&#39;</span>), engine_n_cylinders <span style="color: #666666">/</span> default<span style="color: #666666">.</span>pop(<span style="color: #BA2121">&#39;n_cylinders&#39;</span>, <span style="color: #666666">4</span>)
+    <span style="color: #008000; font-weight: bold">for</span> d <span style="color: #AA22FF; font-weight: bold">in</span> sh<span style="color: #666666">.</span>selector(keys, default, allow_miss<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)<span style="color: #666666">.</span>values():
+        <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #AA22FF; font-weight: bold">in</span> {<span style="color: #BA2121">&#39;value&#39;</span>, <span style="color: #BA2121">&#39;min&#39;</span>, <span style="color: #BA2121">&#39;max&#39;</span>}<span style="color: #666666">.</span>intersection(d):
+            d[k] <span style="color: #666666">*=</span> n
+
+    <span style="color: #008000; font-weight: bold">if</span> is_cycle_hot:
+        default[<span style="color: #BA2121">&#39;t1&#39;</span>]<span style="color: #666666">.</span>update({<span style="color: #BA2121">&#39;value&#39;</span>: <span style="color: #666666">0.0</span>, <span style="color: #BA2121">&#39;vary&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>})
+        default[<span style="color: #BA2121">&#39;dt&#39;</span>]<span style="color: #666666">.</span>update({<span style="color: #BA2121">&#39;value&#39;</span>: <span style="color: #666666">0.0</span>, <span style="color: #BA2121">&#39;vary&#39;</span>: <span style="color: #008000; font-weight: bold">False</span>})
+
+    p <span style="color: #666666">=</span> lmfit<span style="color: #666666">.</span>Parameters()
+    eps <span style="color: #666666">=</span> dfl<span style="color: #666666">.</span>EPS
+    <span style="color: #008000; font-weight: bold">for</span> k, kw <span style="color: #AA22FF; font-weight: bold">in</span> default<span style="color: #666666">.</span>items():
+        kw[<span style="color: #BA2121">&#39;name&#39;</span>] <span style="color: #666666">=</span> k
+
+        kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666666">=</span> co2_params<span style="color: #666666">.</span>get(k, kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;value&#39;</span>, <span style="color: #008000; font-weight: bold">None</span>))
+
+        <span style="color: #008000; font-weight: bold">if</span> k <span style="color: #AA22FF; font-weight: bold">in</span> bounds:
+            b <span style="color: #666666">=</span> bounds[k]
+            kw[<span style="color: #BA2121">&#39;min&#39;</span>] <span style="color: #666666">=</span> b<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;min&#39;</span>, kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;min&#39;</span>, <span style="color: #008000; font-weight: bold">None</span>))
+            kw[<span style="color: #BA2121">&#39;max&#39;</span>] <span style="color: #666666">=</span> b<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;max&#39;</span>, kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;max&#39;</span>, <span style="color: #008000; font-weight: bold">None</span>))
+            kw[<span style="color: #BA2121">&#39;vary&#39;</span>] <span style="color: #666666">=</span> b<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;vary&#39;</span>, kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;vary&#39;</span>, <span style="color: #008000; font-weight: bold">True</span>))
+        <span style="color: #008000; font-weight: bold">elif</span> <span style="color: #BA2121">&#39;vary&#39;</span> <span style="color: #AA22FF; font-weight: bold">not</span> <span style="color: #AA22FF; font-weight: bold">in</span> kw:
+            kw[<span style="color: #BA2121">&#39;vary&#39;</span>] <span style="color: #666666">=</span> k <span style="color: #AA22FF; font-weight: bold">not</span> <span style="color: #AA22FF; font-weight: bold">in</span> co2_params
+
+        <span style="color: #008000; font-weight: bold">if</span> kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #AA22FF; font-weight: bold">is</span> <span style="color: #AA22FF; font-weight: bold">not</span> <span style="color: #008000; font-weight: bold">None</span>:
+            <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;min&#39;</span> <span style="color: #AA22FF; font-weight: bold">in</span> kw <span style="color: #AA22FF; font-weight: bold">and</span> kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666666">&lt;</span> kw[<span style="color: #BA2121">&#39;min&#39;</span>]:
+                kw[<span style="color: #BA2121">&#39;min&#39;</span>] <span style="color: #666666">=</span> kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666666">-</span> eps
+            <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;max&#39;</span> <span style="color: #AA22FF; font-weight: bold">in</span> kw <span style="color: #AA22FF; font-weight: bold">and</span> kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666666">&gt;</span> kw[<span style="color: #BA2121">&#39;max&#39;</span>]:
+                kw[<span style="color: #BA2121">&#39;max&#39;</span>] <span style="color: #666666">=</span> kw[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666666">+</span> eps
+
+        <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;min&#39;</span> <span style="color: #AA22FF; font-weight: bold">in</span> kw <span style="color: #AA22FF; font-weight: bold">and</span> <span style="color: #BA2121">&#39;max&#39;</span> <span style="color: #AA22FF; font-weight: bold">in</span> kw <span style="color: #AA22FF; font-weight: bold">and</span> kw[<span style="color: #BA2121">&#39;min&#39;</span>] <span style="color: #666666">==</span> kw[<span style="color: #BA2121">&#39;max&#39;</span>]:
+            kw[<span style="color: #BA2121">&#39;vary&#39;</span>] <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+            <span style="color: #408080; font-style: italic"># noinspection PyTypeChecker</span>
+            kw[<span style="color: #BA2121">&#39;max&#39;</span>] <span style="color: #666666">=</span> kw[<span style="color: #BA2121">&#39;min&#39;</span>] <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">None</span>
+
+        kw[<span style="color: #BA2121">&#39;min&#39;</span>] <span style="color: #666666">=</span> kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;min&#39;</span>, <span style="color: #008000; font-weight: bold">None</span>)
+        kw[<span style="color: #BA2121">&#39;max&#39;</span>] <span style="color: #666666">=</span> kw<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;max&#39;</span>, <span style="color: #008000; font-weight: bold">None</span>)
+        p<span style="color: #666666">.</span>add(<span style="color: #666666">**</span>kw)
+
+    friction_params <span style="color: #666666">=</span> _select_initial_friction_params(p)
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #AA22FF; font-weight: bold">not</span> _missing_co2_params(co2_params):
+        p <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>NONE
+
+    <span style="color: #008000; font-weight: bold">return</span> p, friction_params
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;gear_box_efficiencies&#39;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_gear_box_efficiencies</span>(
+        gear_box_powers_out, gear_box_speeds_in, gear_box_torques,
+        gear_box_torques_in, min_engine_on_speed):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates gear box efficiency [-].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_powers_out:</span>
+<span style="color: #BA2121; font-style: italic">        Power at wheels vector [kW].</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_powers_out: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_speeds_in:</span>
+<span style="color: #BA2121; font-style: italic">        Engine speed vector [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_speeds_in: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_torques:</span>
+<span style="color: #BA2121; font-style: italic">        Torque gear_box vector [N*m].</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_torques: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param gear_box_torques_in:</span>
+<span style="color: #BA2121; font-style: italic">        Torque required vector [N*m].</span>
+<span style="color: #BA2121; font-style: italic">    :type gear_box_torques_in: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param min_engine_on_speed:</span>
+<span style="color: #BA2121; font-style: italic">        Minimum engine speed to consider the engine to be on [RPM].</span>
+<span style="color: #BA2121; font-style: italic">    :type min_engine_on_speed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Gear box efficiency vector [-].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    wp <span style="color: #666666">=</span> gear_box_powers_out
+    tgb <span style="color: #666666">=</span> gear_box_torques
+    tr <span style="color: #666666">=</span> gear_box_torques_in
+    es <span style="color: #666666">=</span> gear_box_speeds_in
+
+    eff <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros_like(wp)
+
+    b0 <span style="color: #666666">=</span> tr <span style="color: #666666">*</span> tgb <span style="color: #666666">&gt;=</span> <span style="color: #666666">0</span>
+    b1 <span style="color: #666666">=</span> b0 <span style="color: #666666">&amp;</span> (wp <span style="color: #666666">&gt;=</span> <span style="color: #666666">0</span>) <span style="color: #666666">&amp;</span> (es <span style="color: #666666">&gt;</span> min_engine_on_speed) <span style="color: #666666">&amp;</span> (tr <span style="color: #666666">!=</span> <span style="color: #666666">0</span>)
+    b <span style="color: #666666">=</span> ((b0 <span style="color: #666666">&amp;</span> (wp <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>)) <span style="color: #666666">|</span> b1)
+
+    eff[b] <span style="color: #666666">=</span> es[b] <span style="color: #666666">*</span> tr[b] <span style="color: #666666">/</span> wp[b] <span style="color: #666666">*</span> (math<span style="color: #666666">.</span>pi <span style="color: #666666">/</span> <span style="color: #666666">30000</span>)
+
+    eff[b1] <span style="color: #666666">=</span> <span style="color: #666666">1</span> <span style="color: #666666">/</span> eff[b1]
+
+    <span style="color: #008000; font-weight: bold">return</span> np<span style="color: #666666">.</span>nan_to_num(eff)
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

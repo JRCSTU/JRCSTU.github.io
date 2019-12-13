@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;selections&#39;</span>] <span style="color: #666666">+</span> <span style="color: #008000">list</span>(
+    <span style="color: #008000">map</span>(<span style="color: #BA2121">&#39;models_</span><span style="color: #BB6688; font-weight: bold">{}</span><span style="color: #BA2121">&#39;</span><span style="color: #666666">.</span>format, prediction_cycles)
+))
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">split_prediction_models</span>(scores, models, default_models):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Split prediction models.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param scores:</span>
+<span style="color: #BA2121; font-style: italic">        Models score.</span>
+<span style="color: #BA2121; font-style: italic">    :type scores: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :param models:</span>
+<span style="color: #BA2121; font-style: italic">        Calibrated models.</span>
+<span style="color: #BA2121; font-style: italic">    :type models: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :param default_models:</span>
+<span style="color: #BA2121; font-style: italic">        Default calibrated models.</span>
+<span style="color: #BA2121; font-style: italic">    :type default_models: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Scores and prediction models.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: tuple</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    sbm, model_sel, par <span style="color: #666666">=</span> {}, {}, {}
+    <span style="color: #008000; font-weight: bold">for</span> (k, c), v <span style="color: #AA22FF; font-weight: bold">in</span> sh<span style="color: #666666">.</span>stack_nested_keys(scores, depth<span style="color: #666666">=2</span>):
+        r <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>selector([<span style="color: #BA2121">&#39;models&#39;</span>], v, allow_miss<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)
+
+        <span style="color: #008000; font-weight: bold">for</span> m <span style="color: #AA22FF; font-weight: bold">in</span> r<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;models&#39;</span>, ()):
+            sh<span style="color: #666666">.</span>get_nested_dicts(par, m, <span style="color: #BA2121">&#39;calibration&#39;</span>)[c] <span style="color: #666666">=</span> c
+
+        r<span style="color: #666666">.</span>update(v<span style="color: #666666">.</span>get(<span style="color: #BA2121">&#39;score&#39;</span>, {}))
+        sh<span style="color: #666666">.</span>get_nested_dicts(sbm, k)[c] <span style="color: #666666">=</span> r
+        r <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>selector([<span style="color: #BA2121">&#39;success&#39;</span>], r, allow_miss<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">True</span>)
+        r <span style="color: #666666">=</span> sh<span style="color: #666666">.</span>map_dict({<span style="color: #BA2121">&#39;success&#39;</span>: <span style="color: #BA2121">&#39;status&#39;</span>}, r, {<span style="color: #BA2121">&#39;from&#39;</span>: c})
+        sh<span style="color: #666666">.</span>get_nested_dicts(model_sel, k, <span style="color: #BA2121">&#39;calibration&#39;</span>)[c] <span style="color: #666666">=</span> r
+
+    p <span style="color: #666666">=</span> {i: <span style="color: #008000">dict</span><span style="color: #666666">.</span>fromkeys(default_models, <span style="color: #BA2121">&#39;input&#39;</span>) <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #AA22FF; font-weight: bold">in</span> prediction_cycles}
+
+    mdls <span style="color: #666666">=</span> {i: default_models<span style="color: #666666">.</span>copy() <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #AA22FF; font-weight: bold">in</span> prediction_cycles}
+
+    <span style="color: #008000; font-weight: bold">for</span> k, n <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">sorted</span>(models<span style="color: #666666">.</span>items()):
+        d <span style="color: #666666">=</span> n<span style="color: #666666">.</span>get(sh<span style="color: #666666">.</span>NONE, (<span style="color: #008000; font-weight: bold">None</span>, <span style="color: #008000; font-weight: bold">True</span>, {}))
+
+        <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #AA22FF; font-weight: bold">in</span> prediction_cycles:
+            c, s, m <span style="color: #666666">=</span> n<span style="color: #666666">.</span>get(i, d)
+            <span style="color: #008000; font-weight: bold">if</span> m:
+                s <span style="color: #666666">=</span> {<span style="color: #BA2121">&#39;from&#39;</span>: c, <span style="color: #BA2121">&#39;status&#39;</span>: s}
+                sh<span style="color: #666666">.</span>get_nested_dicts(model_sel, k, <span style="color: #BA2121">&#39;prediction&#39;</span>)[i] <span style="color: #666666">=</span> s
+                mdls[i]<span style="color: #666666">.</span>update(m)
+                p[i]<span style="color: #666666">.</span>update(<span style="color: #008000">dict</span><span style="color: #666666">.</span>fromkeys(m, c))
+
+    <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #AA22FF; font-weight: bold">in</span> sh<span style="color: #666666">.</span>stack_nested_keys(p, (<span style="color: #BA2121">&#39;prediction&#39;</span>,), depth<span style="color: #666666">=2</span>):
+        sh<span style="color: #666666">.</span>get_nested_dicts(par, k[<span style="color: #666666">-1</span>], <span style="color: #666666">*</span>k[:<span style="color: #666666">-2</span>])[k[<span style="color: #666666">-2</span>]] <span style="color: #666666">=</span> v
+
+    s <span style="color: #666666">=</span> {
+        <span style="color: #BA2121">&#39;param_selections&#39;</span>: par,
+        <span style="color: #BA2121">&#39;model_selections&#39;</span>: model_sel,
+        <span style="color: #BA2121">&#39;score_by_model&#39;</span>: sbm,
+        <span style="color: #BA2121">&#39;scores&#39;</span>: scores
+    }
+    <span style="color: #008000; font-weight: bold">return</span> (s,) <span style="color: #666666">+</span> <span style="color: #008000">tuple</span>(mdls<span style="color: #666666">.</span>get(k, {}) <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #AA22FF; font-weight: bold">in</span> prediction_cycles)
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

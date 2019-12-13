@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&#39;validated_plan&#39;</span>], <span style="color: #666666">**</span>_kw)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">validate_plan</span>(
+        input_type, plan<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">None</span>, declaration_mode<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">False</span>, hard_validation<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">False</span>,
+        type_approval_mode<span style="color: #666666">=</span><span style="color: #008000; font-weight: bold">False</span>):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Validate plan data.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param input_type:</span>
+<span style="color: #BA2121; font-style: italic">        Type of file input.</span>
+<span style="color: #BA2121; font-style: italic">    :type input_type: str</span>
+
+<span style="color: #BA2121; font-style: italic">    :param plan:</span>
+<span style="color: #BA2121; font-style: italic">        Plan data.</span>
+<span style="color: #BA2121; font-style: italic">    :type plan: dict</span>
+
+<span style="color: #BA2121; font-style: italic">    :param declaration_mode:</span>
+<span style="color: #BA2121; font-style: italic">        Use only the declaration data.</span>
+<span style="color: #BA2121; font-style: italic">    :type declaration_mode: bool</span>
+
+<span style="color: #BA2121; font-style: italic">    :param hard_validation:</span>
+<span style="color: #BA2121; font-style: italic">        Add extra data validations.</span>
+<span style="color: #BA2121; font-style: italic">    :type hard_validation: bool</span>
+
+<span style="color: #BA2121; font-style: italic">    :param type_approval_mode:</span>
+<span style="color: #BA2121; font-style: italic">        Is launched for TA?</span>
+<span style="color: #BA2121; font-style: italic">    :type type_approval_mode: bool</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Validated plan data.</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: dict</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">pandas</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">pd</span>
+    <span style="color: #008000; font-weight: bold">if</span> plan <span style="color: #AA22FF; font-weight: bold">and</span> declaration_mode:
+        msg <span style="color: #666666">=</span> <span style="color: #BA2121">&#39;Simulation plan cannot be executed in declaration mode!</span><span style="color: #BB6622; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span> \
+              <span style="color: #BA2121">&#39;If you want to execute it remove -DM or -TA from the cmd.&#39;</span>
+        log<span style="color: #666666">.</span>warning(msg)
+        <span style="color: #008000; font-weight: bold">return</span> []
+    <span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">os.path</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">osp</span>
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">..excel</span> <span style="color: #008000; font-weight: bold">import</span> _parse_values <span style="color: #008000; font-weight: bold">as</span> parse_key
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">..schema</span> <span style="color: #008000; font-weight: bold">import</span> define_data_schema <span style="color: #008000; font-weight: bold">as</span> _schema
+
+    validated_plan, e, keys <span style="color: #666666">=</span> [], {}, {<span style="color: #BA2121">&#39;id&#39;</span>, <span style="color: #BA2121">&#39;base&#39;</span>, <span style="color: #BA2121">&#39;run_base&#39;</span>}
+    validate, add <span style="color: #666666">=</span> _schema()<span style="color: #666666">.</span>validate, validated_plan<span style="color: #666666">.</span>append
+
+    <span style="color: #008000; font-weight: bold">for</span> _, d <span style="color: #AA22FF; font-weight: bold">in</span> pd<span style="color: #666666">.</span>DataFrame(plan <span style="color: #AA22FF; font-weight: bold">or</span> [])<span style="color: #666666">.</span>iterrows():
+        d <span style="color: #666666">=</span> <span style="color: #008000">dict</span>(d<span style="color: #666666">.</span>dropna(how<span style="color: #666666">=</span><span style="color: #BA2121">&#39;all&#39;</span>))
+        d[<span style="color: #BA2121">&#39;base&#39;</span>] <span style="color: #666666">=</span> osp<span style="color: #666666">.</span>abspath(d[<span style="color: #BA2121">&#39;base&#39;</span>])
+        i, data, p_id <span style="color: #666666">=</span> {}, {}, <span style="color: #BA2121">&#39;plan id:</span><span style="color: #BB6688; font-weight: bold">{}</span><span style="color: #BA2121">&#39;</span><span style="color: #666666">.</span>format(d[<span style="color: #BA2121">&#39;id&#39;</span>])
+
+        <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #AA22FF; font-weight: bold">in</span> parse_key(sh<span style="color: #666666">.</span>selector(<span style="color: #008000">set</span>(d) <span style="color: #666666">-</span> keys, d), where<span style="color: #666666">=</span><span style="color: #BA2121">&#39;in plan&#39;</span>):
+            k, inp <span style="color: #666666">=</span> (p_id,) <span style="color: #666666">+</span> k, sh<span style="color: #666666">.</span>get_nested_dicts(i, <span style="color: #666666">*</span>k[<span style="color: #666666">1</span>:<span style="color: #666666">-1</span>])
+            v <span style="color: #666666">=</span> _add_validated_input(inp, validate, k, v, e)
+            <span style="color: #008000; font-weight: bold">if</span> v <span style="color: #AA22FF; font-weight: bold">is</span> <span style="color: #AA22FF; font-weight: bold">not</span> sh<span style="color: #666666">.</span>NONE:
+                sh<span style="color: #666666">.</span>get_nested_dicts(data, <span style="color: #BA2121">&#39;.&#39;</span><span style="color: #666666">.</span>join(k[<span style="color: #666666">2</span>:<span style="color: #666666">-1</span>]))[k[<span style="color: #666666">-1</span>]] <span style="color: #666666">=</span> v
+
+        e <span style="color: #666666">=</span> _mode_parser(
+            type_approval_mode, declaration_mode, hard_validation, i, e,
+            input_type
+        )[<span style="color: #666666">1</span>]
+        add(sh<span style="color: #666666">.</span>combine_dicts({<span style="color: #BA2121">&#39;data&#39;</span>: data}, base<span style="color: #666666">=</span>sh<span style="color: #666666">.</span>selector(keys, d)))
+
+    <span style="color: #008000; font-weight: bold">if</span> _log_errors_msg(e):
+        <span style="color: #008000; font-weight: bold">return</span> sh<span style="color: #666666">.</span>NONE
+
+    <span style="color: #008000; font-weight: bold">return</span> validated_plan
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

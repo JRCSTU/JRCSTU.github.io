@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+    </style>
+</head>
+<body style="height: 100vh; width: 100vw" onload="_onload()">
+<div class="highlight" style="background: transparent"><pre style="line-height: 125%"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[
+    <span style="color: #BA2121">&#39;extended_cumulative_co2_emissions&#39;</span>, <span style="color: #BA2121">&#39;extended_phases_integration_times&#39;</span>
+])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">calculate_extended_cumulative_co2_emissions</span>(
+        times, velocities, on_engine, extended_integration_times,
+        co2_normalization_references, phases_integration_times,
+        phases_co2_emissions, phases_distances, stop_velocity):
+    <span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Calculates the extended cumulative CO2 of cycle phases [CO2g].</span>
+
+<span style="color: #BA2121; font-style: italic">    :param times:</span>
+<span style="color: #BA2121; font-style: italic">        Time vector [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type times: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param velocities:</span>
+<span style="color: #BA2121; font-style: italic">        Velocity vector [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type velocities: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param on_engine:</span>
+<span style="color: #BA2121; font-style: italic">        If the engine is on [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type on_engine: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param extended_integration_times:</span>
+<span style="color: #BA2121; font-style: italic">        Extended cycle phases integration times [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type extended_integration_times: tuple</span>
+
+<span style="color: #BA2121; font-style: italic">    :param co2_normalization_references:</span>
+<span style="color: #BA2121; font-style: italic">        CO2 normalization references (e.g., engine loads) [-].</span>
+<span style="color: #BA2121; font-style: italic">    :type co2_normalization_references: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param phases_integration_times:</span>
+<span style="color: #BA2121; font-style: italic">        Cycle phases integration times [s].</span>
+<span style="color: #BA2121; font-style: italic">    :type phases_integration_times: tuple</span>
+
+<span style="color: #BA2121; font-style: italic">    :param phases_co2_emissions:</span>
+<span style="color: #BA2121; font-style: italic">        CO2 emission of cycle phases [CO2g/km].</span>
+<span style="color: #BA2121; font-style: italic">    :type phases_co2_emissions: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param phases_distances:</span>
+<span style="color: #BA2121; font-style: italic">        Cycle phases distances [km].</span>
+<span style="color: #BA2121; font-style: italic">    :type phases_distances: numpy.array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param stop_velocity:</span>
+<span style="color: #BA2121; font-style: italic">        Maximum velocity to consider the vehicle stopped [km/h].</span>
+<span style="color: #BA2121; font-style: italic">    :type stop_velocity: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :return:</span>
+<span style="color: #BA2121; font-style: italic">        Extended cumulative CO2 of cycle phases [CO2g].</span>
+<span style="color: #BA2121; font-style: italic">    :rtype: numpy.array</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    r <span style="color: #666666">=</span> co2_normalization_references<span style="color: #666666">.</span>copy()
+    r[<span style="color: #666666">~</span>on_engine] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+    lv <span style="color: #666666">=</span> np<span style="color: #666666">.</span>asarray(velocities <span style="color: #666666">&lt;=</span> stop_velocity, <span style="color: #008000">int</span>)
+    _cco2, phases <span style="color: #666666">=</span> [], []
+    cco2 <span style="color: #666666">=</span> phases_co2_emissions <span style="color: #666666">*</span> phases_distances
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">scipy.integrate</span> <span style="color: #008000; font-weight: bold">import</span> trapz
+
+    <span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">_stops</span>(n, m):
+        <span style="color: #008000; font-weight: bold">return</span> trapz(lv[n:m], times[n:m]) <span style="color: #666666">/</span> (times[m] <span style="color: #666666">-</span> times[n])
+
+    <span style="color: #008000; font-weight: bold">for</span> cco2, (t0, t1) <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">zip</span>(cco2, phases_integration_times):
+        i, j <span style="color: #666666">=</span> np<span style="color: #666666">.</span>searchsorted(times, (t0, t1))
+        <span style="color: #008000; font-weight: bold">if</span> i <span style="color: #666666">==</span> j:
+            <span style="color: #008000; font-weight: bold">continue</span>
+        v <span style="color: #666666">=</span> trapz(r[i:j], times[i:j])
+        c, k0 <span style="color: #666666">=</span> [<span style="color: #666666">0.0</span>], i
+
+        p <span style="color: #666666">=</span> [t <span style="color: #008000; font-weight: bold">for</span> t <span style="color: #AA22FF; font-weight: bold">in</span> extended_integration_times <span style="color: #008000; font-weight: bold">if</span> t0 <span style="color: #666666">&lt;</span> t <span style="color: #666666">&lt;</span> t1]
+        <span style="color: #008000; font-weight: bold">for</span> k, t <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">zip</span>(np<span style="color: #666666">.</span>searchsorted(times, p), p):
+            <span style="color: #008000; font-weight: bold">if</span> k <span style="color: #666666">&lt;</span> j <span style="color: #AA22FF; font-weight: bold">and</span> _stops(k0, k) <span style="color: #666666">&lt;</span> <span style="color: #666666">0.5</span> <span style="color: #AA22FF; font-weight: bold">and</span> _stops(k, j) <span style="color: #666666">&lt;</span> <span style="color: #666666">0.5</span>:
+                phases<span style="color: #666666">.</span>append((t0, t))
+                t0, k0 <span style="color: #666666">=</span> t, k
+                c<span style="color: #666666">.</span>append(trapz(r[i:k], times[i:k]) <span style="color: #666666">/</span> v)
+        phases<span style="color: #666666">.</span>append((t0, t1))
+        c<span style="color: #666666">.</span>append(<span style="color: #666666">1.0</span>)
+
+        _cco2<span style="color: #666666">.</span>extend(np<span style="color: #666666">.</span>diff(c) <span style="color: #666666">*</span> cco2)
+
+    <span style="color: #008000; font-weight: bold">return</span> np<span style="color: #666666">.</span>array(_cco2), phases
+</pre></div>
+
+<script>
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function _onload() {
+        var el = document.getElementById(getURLParam("id") || 'graph0');
+        if (el)
+            if (el.getAttribute('class').indexOf('node') !== -1) {
+                var bound = el.getBoundingClientRect();
+                window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                el.setAttribute('class', el.getAttribute('class') + " on");
+            } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+            }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null,
+        refreshIntervalId = setInterval(sendUrl, 100);
+    window.addEventListener('message', function(event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin||'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>
