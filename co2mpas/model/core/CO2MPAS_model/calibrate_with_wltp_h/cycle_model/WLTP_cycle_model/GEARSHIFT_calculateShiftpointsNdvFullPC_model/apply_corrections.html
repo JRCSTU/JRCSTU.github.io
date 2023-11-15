@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        .controls {
+            background: #343a40;
+            width: 100%;
+        }
+
+        .controls button {
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            color: #BBBBBB;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+
+        .controls button:hover {
+            background-color: #555;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        #iframe {
+            flex-grow: 1;
+        }
+
+        #index {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sh-ico {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-left: 8px;
+            padding-top: 3px;
+            vertical-align: middle;
+            content: "";
+            background: no-repeat center center;
+            background-size: 100% 100%;
+        }
+
+        .sh-ico-compress {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3'/%3E%3C/svg%3E");
+        }
+
+        .sh-ico-expand {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'/%3E%3C/svg%3E");
+        }
+    </style>
+    <!-- Required Javascript -->
+    
+    
+</head>
+<body onload="_onload()">
+<div id="index" style="display: none; height: 100%">
+    <div class="controls">
+        <button id="btnFullScreen" class="sh-ico sh-ico-expand"
+                style="display: none"
+                onclick="FullScreen()"
+                title="Enter/Exit Full Screen">
+        </button>
+        <button id="btnBack" onclick="onBack(event)" title="Go back">
+            &lt;
+        </button>
+        <button id="btnForward" onclick="onForward(event)" title="Go forward">
+            &gt;
+        </button>
+    </div>
+    <iframe id="iframe" allowfullscreen frameborder="0"></iframe>
+</div>
+<div id="content" style="background: white; display: none"> <div class="highlight" style="background: transparent"><pre style="line-height: 125%;"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(
+    dsp,
+    outputs<span style="color: #666666">=</span>[
+        <span style="color: #BA2121">&quot;InitialGearsFinal&quot;</span>,
+        <span style="color: #BA2121">&quot;CorrectionsCells&quot;</span>,
+        <span style="color: #BA2121">&quot;ClutchDisengagedByGearFinal&quot;</span>,
+        <span style="color: #BA2121">&quot;ClutchUndefinedByGearFinal&quot;</span>,
+    ],
+)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">apply_corrections</span>(
+    InitialGears,
+    PhaseValues,
+    PhaseStarts,
+    PhaseEnds,
+    PHASE_ACCELERATION_FROM_STANDSTILL,
+    PHASE_ACCELERATION,
+    NoOfGearsFinal,
+    PossibleGears,
+    InAcceleration,
+    InConstantSpeed,
+    InAccelerationAnyDuration,
+    ClutchDisengagedByGear,
+    ClutchUndefinedByGear,
+    PHASE_DECELERATION,
+    PHASE_DECELERATION_TO_STANDSTILL,
+    TraceTimesCount,
+    RequiredVehicleSpeeds,
+    SuppressGear0DuringDownshifts,
+    ClutchDisengaged,
+    InitialRequiredEngineSpeeds,
+    IdlingEngineSpeed,
+    Phases,
+    InStandStill,
+    InDecelerationToStandstill,
+    InDeceleration,
+):
+<span style="color: #bbbbbb">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Apply corrections defined in section 4 of the sub-Annex 2</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InitialGears:</span>
+<span style="color: #BA2121; font-style: italic">        The initial gears calculated by each second</span>
+<span style="color: #BA2121; font-style: italic">    :type InitialGears: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PhaseValues:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points of changes phases</span>
+<span style="color: #BA2121; font-style: italic">    :type PhaseValues: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PhaseStarts:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are start point from a phase</span>
+<span style="color: #BA2121; font-style: italic">    :type PhaseStarts: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PhaseEnds:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are end point from a phase</span>
+<span style="color: #BA2121; font-style: italic">    :type PhaseEnds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PHASE_ACCELERATION_FROM_STANDSTILL:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration phase following a standstill phase</span>
+<span style="color: #BA2121; font-style: italic">    :type PHASE_ACCELERATION_FROM_STANDSTILL: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PHASE_ACCELERATION:</span>
+<span style="color: #BA2121; font-style: italic">        Acceleration phase</span>
+<span style="color: #BA2121; font-style: italic">    :type PHASE_ACCELERATION: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param NoOfGearsFinal:</span>
+<span style="color: #BA2121; font-style: italic">        The number of forward gears after apply the exclusion of first gear</span>
+<span style="color: #BA2121; font-style: italic">        if is necessary.</span>
+<span style="color: #BA2121; font-style: italic">    :type NoOfGearsFinal: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PossibleGears:</span>
+<span style="color: #BA2121; font-style: italic">        The possible gears calculated by each second</span>
+<span style="color: #BA2121; font-style: italic">    :type PossibleGears: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InAcceleration:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are in acceleration phase as a True</span>
+<span style="color: #BA2121; font-style: italic">    :type InAcceleration: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InConstantSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are in constant speed phase as a True</span>
+<span style="color: #BA2121; font-style: italic">    :type InConstantSpeed: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InAccelerationAnyDuration:</span>
+<span style="color: #BA2121; font-style: italic">         some gear corrections ignore the duration of acceleration phases</span>
+<span style="color: #BA2121; font-style: italic">         so save acceleration phases with any duration here</span>
+<span style="color: #BA2121; font-style: italic">    :type InAccelerationAnyDuration: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchDisengagedByGear:</span>
+<span style="color: #BA2121; font-style: italic">        The clutch disengaged by each gear and each second.</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchDisengagedByGear: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchUndefinedByGear:</span>
+<span style="color: #BA2121; font-style: italic">        The clutch undefined by each gear and each second.</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchUndefinedByGear: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PHASE_DECELERATION:</span>
+<span style="color: #BA2121; font-style: italic">        time period of more than 2 seconds with required vehicle</span>
+<span style="color: #BA2121; font-style: italic">                speed &gt;= 1km/h and monotonically decreasing</span>
+<span style="color: #BA2121; font-style: italic">    :type PHASE_DECELERATION: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PHASE_DECELERATION_TO_STANDSTILL:</span>
+<span style="color: #BA2121; font-style: italic">        DECELERATION phase preceding a STANDSTILL phase</span>
+<span style="color: #BA2121; font-style: italic">    :type PHASE_DECELERATION_TO_STANDSTILL: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param TraceTimesCount:</span>
+<span style="color: #BA2121; font-style: italic">        The length of trace times re-sampled in 1Hz</span>
+<span style="color: #BA2121; font-style: italic">    :type TraceTimesCount: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param RequiredVehicleSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        The vehicle speed required for the whole cycle re-sampled in 1Hz</span>
+<span style="color: #BA2121; font-style: italic">    :type RequiredVehicleSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param SuppressGear0DuringDownshifts:</span>
+<span style="color: #BA2121; font-style: italic">        Sub-Annex 2 (4f).If a gear is used for only 1 second during a deceleration phase</span>
+<span style="color: #BA2121; font-style: italic">        it shall be replaced by gear 0 with clutch disengaged, in order to avoid too high</span>
+<span style="color: #BA2121; font-style: italic">        engine speeds. But if this is not an issue, the manufacturer may allow to use the</span>
+<span style="color: #BA2121; font-style: italic">        lower gear of the following second directly instead of gear 0 for downshifts of</span>
+<span style="color: #BA2121; font-style: italic">        up to 3 steps.</span>
+<span style="color: #BA2121; font-style: italic">    :type SuppressGear0DuringDownshifts: boolean</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchDisengaged:</span>
+<span style="color: #BA2121; font-style: italic">        The clutch disengaged by each second.</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchDisengaged: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InitialRequiredEngineSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        The initial engine speeds required for each gear i from 1 to ng and</span>
+<span style="color: #BA2121; font-style: italic">        for each second j of the cycle trace.</span>
+<span style="color: #BA2121; font-style: italic">    :type InitialRequiredEngineSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param IdlingEngineSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2c) n_idle. The idling speed.</span>
+<span style="color: #BA2121; font-style: italic">    :type IdlingEngineSpeed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param Phases:</span>
+<span style="color: #BA2121; font-style: italic">        The list of phases that are used during whole cycle</span>
+<span style="color: #BA2121; font-style: italic">    :type Phases: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InStandStill:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are in standstill phase as a True</span>
+<span style="color: #BA2121; font-style: italic">    :type InStandStill: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InDecelerationToStandstill:</span>
+<span style="color: #BA2121; font-style: italic">        The array that contains the seconds from deceleration to standstill as a True</span>
+<span style="color: #BA2121; font-style: italic">    :type InDecelerationToStandstill: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InDeceleration:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the points that are in deceleration phase as a True</span>
+<span style="color: #BA2121; font-style: italic">    :type InDeceleration: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :returns:</span>
+<span style="color: #BA2121; font-style: italic">        - InitialGearsFinal (:py:class:`numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The initial gears after apply corrections calculated by each second.</span>
+<span style="color: #BA2121; font-style: italic">        - CorrectionsCells (:py:class:`numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            Array of gear correction strings for debugging. This contains a historic</span>
+<span style="color: #BA2121; font-style: italic">            transformation of each gear during all execution and the transformation</span>
+<span style="color: #BA2121; font-style: italic">            applied.</span>
+<span style="color: #BA2121; font-style: italic">        - ClutchDisengagedByGearFinal (:py:class:`boolean numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The clutch disengaged by each gear and each second after apply corrections.</span>
+<span style="color: #BA2121; font-style: italic">        - ClutchUndefinedByGearFinal (:py:class:`boolean numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The clutch undefined by each gear and each second after apply corrections.</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">functools</span> <span style="color: #008000; font-weight: bold">import</span> reduce
+
+    CorrectionsCells <span style="color: #666666">=</span> [[] <span style="color: #008000; font-weight: bold">for</span> _ <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666666">0</span>, <span style="color: #008000">len</span>(InitialGears))]
+    CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+        CorrectionsCells, InitialGears, InitialGears, <span style="color: #BA2121">&quot;&quot;</span>, <span style="color: #666666">0</span>
+    )
+
+    corr_4d_applied_before <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros(np<span style="color: #666666">.</span>size(InitialGears))
+
+    <span style="color: #008000; font-weight: bold">for</span> correction <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666666">1</span>, <span style="color: #666666">3</span>):
+        Corr4bToBeDoneAfterCorr4a <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros(<span style="color: #008000">len</span>(InitialGears))
+        Corr4bToBeDoneAfterCorr4d <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros(<span style="color: #008000">len</span>(InitialGears))
+
+        (
+            InitialGears,
+            Corr4bToBeDoneAfterCorr4a,
+            Corr4bToBeDoneAfterCorr4d,
+        ) <span style="color: #666666">=</span> applyCorrection4b(
+            InitialGears,
+            Corr4bToBeDoneAfterCorr4a,
+            Corr4bToBeDoneAfterCorr4d,
+            PhaseValues,
+            PhaseStarts,
+            PhaseEnds,
+            PHASE_ACCELERATION_FROM_STANDSTILL,
+            PHASE_ACCELERATION,
+            NoOfGearsFinal,
+        )
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4b&quot;</span>, correction
+        )
+
+        InitialGears <span style="color: #666666">=</span> applyCorrection4a(
+            InitialGears,
+            Corr4bToBeDoneAfterCorr4a,
+            PossibleGears,
+            InAcceleration,
+            InConstantSpeed,
+            InAccelerationAnyDuration,
+        )
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4a&quot;</span>, correction
+        )
+
+        <span style="color: #3D7B7B; font-style: italic"># Do an extra delayed gear correction &quot;4s&quot; ( s : short downshift )</span>
+        <span style="color: #3D7B7B; font-style: italic"># which was determined during gear correction 4b</span>
+        <span style="color: #3D7B7B; font-style: italic"># but shall be done after gear correction 4a.</span>
+        <span style="color: #3D7B7B; font-style: italic"># This delayed correction must be suppressed at positions</span>
+        <span style="color: #3D7B7B; font-style: italic"># where there is no such short downshift anymore</span>
+        <span style="color: #3D7B7B; font-style: italic"># (and at positions where correction 4c will extend such short downshifts)</span>
+
+        np<span style="color: #666666">.</span>put(
+            Corr4bToBeDoneAfterCorr4a,
+            reduce(
+                np<span style="color: #666666">.</span>intersect1d,
+                (
+                    np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>),
+                    np<span style="color: #666666">.</span>where(np<span style="color: #666666">.</span>diff(np<span style="color: #666666">.</span>insert(InitialGears, <span style="color: #666666">0</span>, np<span style="color: #666666">.</span>nan)) <span style="color: #666666">&lt;</span> <span style="color: #666666">0</span>),
+                    np<span style="color: #666666">.</span>where(np<span style="color: #666666">.</span>diff(np<span style="color: #666666">.</span>append(InitialGears, np<span style="color: #666666">.</span>nan)) <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>),
+                ),
+            ),
+            <span style="color: #666666">1</span>,
+        )
+
+        enabled <span style="color: #666666">=</span> _next_n_gears_are_higher(<span style="color: #666666">6</span>, InitialGears)
+        prevCorr4bToBeDoneAfterCorr4a <span style="color: #666666">=</span> np<span style="color: #666666">.</span>copy(Corr4bToBeDoneAfterCorr4a)
+        Corr4bToBeDoneAfterCorr4a <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros(<span style="color: #008000">len</span>(prevCorr4bToBeDoneAfterCorr4a))
+        np<span style="color: #666666">.</span>put(
+            Corr4bToBeDoneAfterCorr4a,
+            np<span style="color: #666666">.</span>intersect1d(
+                np<span style="color: #666666">.</span>where(prevCorr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>), np<span style="color: #666666">.</span>where(enabled <span style="color: #666666">==</span> <span style="color: #666666">1</span>)
+            ),
+            <span style="color: #666666">1</span>,
+        )
+        InitialGears[np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>)] <span style="color: #666666">=</span> InitialGears[
+            np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>)[<span style="color: #666666">0</span>] <span style="color: #666666">-</span> <span style="color: #666666">1</span>
+        ]
+
+        <span style="color: #008000; font-weight: bold">for</span> igear <span style="color: #AA22FF; font-weight: bold">in</span> np<span style="color: #666666">.</span>unique(InitialGears[np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>)]):
+            ClutchDisengagedByGear[
+                np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>), <span style="color: #008000">int</span>(igear) <span style="color: #666666">-</span> <span style="color: #666666">1</span>
+            ] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+            ClutchUndefinedByGear[
+                np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4a <span style="color: #666666">==</span> <span style="color: #666666">1</span>), <span style="color: #008000">int</span>(igear) <span style="color: #666666">-</span> <span style="color: #666666">1</span>
+            ] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4s&quot;</span>, correction
+        )
+
+        <span style="color: #3D7B7B; font-style: italic"># -----------------------------------------------------------------------</span>
+        <span style="color: #3D7B7B; font-style: italic"># Regulation Annex 2, 4.(c) preface</span>
+        <span style="color: #3D7B7B; font-style: italic"># -----------------------------------------------------------------------</span>
+        <span style="color: #3D7B7B; font-style: italic"># The modification check described in paragraph 4.(c) of this annex</span>
+        <span style="color: #3D7B7B; font-style: italic"># shall be applied to the complete cycle trace twice</span>
+        <span style="color: #3D7B7B; font-style: italic"># prior to the application of paragraphs 4.(d) to 4.(f) of this annex.</span>
+        <span style="color: #3D7B7B; font-style: italic"># -----------------------------------------------------------------------</span>
+        <span style="color: #008000; font-weight: bold">for</span> correction_4c <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666666">1</span>, <span style="color: #666666">3</span>):
+            InitialGears <span style="color: #666666">=</span> applyCorrection4c(InitialGears, PossibleGears)
+            CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+                CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4c&quot;</span>, correction
+            )
+
+        InitialGears <span style="color: #666666">=</span> applyCorrection4d(
+            InitialGears,
+            PhaseStarts,
+            PhaseEnds,
+            PhaseValues,
+            PHASE_DECELERATION,
+            PHASE_DECELERATION_TO_STANDSTILL,
+            corr_4d_applied_before,
+            TraceTimesCount,
+            NoOfGearsFinal,
+            RequiredVehicleSpeeds,
+        )
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4d&quot;</span>, correction
+        )
+
+        <span style="color: #3D7B7B; font-style: italic"># Do an extra delayed gear correction &quot;4t&quot; ( t : two step downshift )</span>
+        <span style="color: #3D7B7B; font-style: italic"># which was determined during gear correction 4b</span>
+        <span style="color: #3D7B7B; font-style: italic"># but shall be done after gear correction 4d (according Heinz Steven).</span>
+        <span style="color: #3D7B7B; font-style: italic"># This delayed correction must be suppressed at positions</span>
+        <span style="color: #3D7B7B; font-style: italic"># where there is no downshift by more than one gear anymore.</span>
+        prevCorr4bToBeDoneAfterCorr4d <span style="color: #666666">=</span> np<span style="color: #666666">.</span>copy(Corr4bToBeDoneAfterCorr4d)
+        Corr4bToBeDoneAfterCorr4d <span style="color: #666666">=</span> np<span style="color: #666666">.</span>zeros(<span style="color: #008000">len</span>(prevCorr4bToBeDoneAfterCorr4d))
+        np<span style="color: #666666">.</span>put(
+            Corr4bToBeDoneAfterCorr4d,
+            np<span style="color: #666666">.</span>intersect1d(
+                np<span style="color: #666666">.</span>where(prevCorr4bToBeDoneAfterCorr4d <span style="color: #666666">==</span> <span style="color: #666666">1</span>),
+                np<span style="color: #666666">.</span>where(np<span style="color: #666666">.</span>diff(np<span style="color: #666666">.</span>append(InitialGears, np<span style="color: #666666">.</span>nan)) <span style="color: #666666">&lt;</span> <span style="color: #666666">-1</span>),
+            ),
+            <span style="color: #666666">1</span>,
+        )
+        <span style="color: #008000; font-weight: bold">if</span> SuppressGear0DuringDownshifts:
+            nextCorr4bToBeDoneAfterCorr4d <span style="color: #666666">=</span> np<span style="color: #666666">.</span>insert(Corr4bToBeDoneAfterCorr4d, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>)
+            InitialGears[np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4d <span style="color: #666666">==</span> <span style="color: #666666">1</span>)] <span style="color: #666666">=</span> InitialGears[
+                np<span style="color: #666666">.</span>where(nextCorr4bToBeDoneAfterCorr4d <span style="color: #666666">==</span> <span style="color: #666666">1</span>)
+            ]
+        <span style="color: #008000; font-weight: bold">else</span>:
+            InitialGears[np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4d <span style="color: #666666">==</span> <span style="color: #666666">1</span>)] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+            ClutchDisengaged[np<span style="color: #666666">.</span>where(Corr4bToBeDoneAfterCorr4d <span style="color: #666666">==</span> <span style="color: #666666">1</span>)] <span style="color: #666666">=</span> <span style="color: #666666">1</span>
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4t&quot;</span>, correction
+        )
+
+        <span style="color: #3D7B7B; font-style: italic"># But also such delayed gear corrections &quot;4t&quot; must be undone</span>
+        <span style="color: #3D7B7B; font-style: italic"># when an even later 2nd gear correction 4d</span>
+        <span style="color: #3D7B7B; font-style: italic"># reduces such downshifts to downshift by only one gear.</span>
+        prevInitialGears <span style="color: #666666">=</span> np<span style="color: #666666">.</span>insert(InitialGears, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>)[:<span style="color: #666666">-1</span>]
+        nextInitialGears <span style="color: #666666">=</span> np<span style="color: #666666">.</span>insert(InitialGears[<span style="color: #666666">1</span>:], <span style="color: #666666">-1</span>, InitialGears[<span style="color: #666666">-1</span>])
+        idx <span style="color: #666666">=</span> reduce(
+            np<span style="color: #666666">.</span>intersect1d,
+            (
+                np<span style="color: #666666">.</span>where(InitialGears <span style="color: #666666">==</span> <span style="color: #666666">0</span>),
+                np<span style="color: #666666">.</span>where(prevInitialGears <span style="color: #666666">-</span> <span style="color: #666666">1</span> <span style="color: #666666">==</span> nextInitialGears),
+                np<span style="color: #666666">.</span>where(nextInitialGears <span style="color: #666666">&gt;</span> <span style="color: #666666">0</span>),
+            ),
+        )
+        InitialGears[idx] <span style="color: #666666">=</span> InitialGears[idx <span style="color: #666666">-</span> <span style="color: #666666">1</span>]
+        ClutchDisengaged[idx] <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+
+        InitialGears, ClutchDisengaged <span style="color: #666666">=</span> applyCorrection4e(
+            InitialGears,
+            PhaseStarts,
+            PhaseEnds,
+            PhaseValues,
+            ClutchDisengaged,
+            InitialRequiredEngineSpeeds,
+            IdlingEngineSpeed,
+            PHASE_DECELERATION,
+            PHASE_DECELERATION_TO_STANDSTILL,
+            Phases,
+        )
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4e&quot;</span>, correction
+        )
+
+        InitialGears, ClutchDisengaged <span style="color: #666666">=</span> applyCorrection4f(
+            InitialGears,
+            ClutchDisengaged,
+            SuppressGear0DuringDownshifts,
+            PossibleGears,
+            InStandStill,
+            InDecelerationToStandstill,
+            InDeceleration,
+        )
+
+        CorrectionsCells, InitialGearsPrev <span style="color: #666666">=</span> appendCorrectionCells(
+            CorrectionsCells, InitialGears, InitialGearsPrev, <span style="color: #BA2121">&quot;4f&quot;</span>, correction
+        )
+
+    InitialGearsFinal <span style="color: #666666">=</span> InitialGears
+    ClutchDisengagedByGearFinal <span style="color: #666666">=</span> ClutchDisengagedByGear
+    ClutchUndefinedByGearFinal <span style="color: #666666">=</span> ClutchUndefinedByGear
+
+    <span style="color: #008000; font-weight: bold">return</span> (
+        InitialGearsFinal,
+        CorrectionsCells,
+        ClutchDisengagedByGearFinal,
+        ClutchUndefinedByGearFinal,
+    )
+</pre></div>
+</div>
+
+<script>
+    var id, hist = {i: -1, list: []}, isFull;
+
+    function FullScreen() {
+        var el = document.getElementById("btnFullScreen");
+        if (isFull) {
+            closeFullscreen();
+            isFull = false;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-compress", "sh-ico-expand"));
+        } else {
+            openFullscreen();
+            isFull = true;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-expand", "sh-ico-compress"));
+        }
+    }
+
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function setURLParam(key, value) {
+        let uri = window.location.href,
+            re = new RegExp("([?&])" + key + "=.*?(&|$)", "i"),
+            separator = uri.indexOf('?') !== -1 ? "&" : "?";
+        if (uri.match(re)) {
+            return uri.replace(re, '$1' + key + "=" + encodeURI(value) + '$2');
+        } else {
+            return uri + separator + key + "=" + encodeURI(value);
+        }
+    }
+
+    function iframeLoad(e) {
+        e.preventDefault();
+        document.getElementById("iframe").contentWindow.postMessage({
+            id: id,
+            action: 'id'
+        }, '*');
+    }
+
+    function onBack(e) {
+        e.preventDefault();
+        if (hist.i > 0) {
+            hist.i--;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function onForward(e) {
+        e.preventDefault();
+        if (hist.i + 1 < hist.list.length) {
+            hist.i++;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function setIframe(src) {
+        document.getElementById("iframe").src = src
+    }
+
+    function closeFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+        }
+    }
+
+    function isFullscreenSupported() {
+        let elem = document.body;
+        return elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen
+    }
+
+    function openFullscreen() {
+        let elem = document.body;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen()
+        } else if (elem.mozRequestFullScreen) { /* Firefox */
+            elem.mozRequestFullScreen()
+        } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+            elem.webkitRequestFullscreen()
+        } else if (elem.msRequestFullscreen) { /* IE/Edge */
+            elem.msRequestFullscreen()
+        }
+    }
+
+    function _onload() {
+        if (getURLParam("controls") === "true") {
+            document.getElementById("iframe").onload = iframeLoad;
+            document.getElementById("index").style.display = "flex";
+            if (isFullscreenSupported())
+                document.getElementById("btnFullScreen").style.display = "inline-block";
+            id = Date.now();
+            setIframe(setURLParam("controls", "false"));
+            window.addEventListener('message', function (event) {
+                if (event.data.id === id) {
+                    if (event.data.action === 'url') {
+                        let href = event.data.url;
+                        if (hist.list[hist.i] !== href) {
+                            hist.i++;
+                            hist.list = hist.list.slice(0, hist.i);
+                            hist.list.push(href);
+                        }
+                        if (hist.i > 0) {
+                            document.getElementById("btnBack").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnBack").style.opacity = "0.5"
+                        }
+                        if (hist.i + 1 < hist.list.length) {
+                            document.getElementById("btnForward").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnForward").style.opacity = "0.5"
+                        }
+                    }
+                }
+            });
+        } else {
+            refreshIntervalId = setInterval(sendUrl, 100);
+            setTimeout(function () {
+                clearInterval(refreshIntervalId)
+            }, 30000);
+            document.getElementById("content").style.display = "block";
+            var el = document.getElementById(getURLParam("id") || 'graph0');
+            if (el)
+                if (el.getAttribute('class').indexOf('node') !== -1) {
+                    var bound = el.getBoundingClientRect();
+                    window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                    el.setAttribute('class', el.getAttribute('class') + " on");
+                } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                    el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+                }
+        }
+        let parser = new DOMParser();
+        for (let e of document.getElementsByTagName('viz')) {
+            let out, digraph = e.getAttribute('digraph'), options = {
+                engine: e.getAttribute('engine') || 'dot',
+                format: "svg"
+            };
+            try {
+                out = parser.parseFromString(Viz(digraph, options), "image/svg+xml").documentElement;
+            } catch (e) {
+                out = document.createElement('div')
+                out.setAttribute('class', 'viz error')
+                out.innerHTML = e.message === undefined ? "An error occurred while processing the graph input." : e.message;
+            }
+            e.appendChild(out);
+        }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null, refreshIntervalId;
+    window.addEventListener('message', function (event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin || 'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

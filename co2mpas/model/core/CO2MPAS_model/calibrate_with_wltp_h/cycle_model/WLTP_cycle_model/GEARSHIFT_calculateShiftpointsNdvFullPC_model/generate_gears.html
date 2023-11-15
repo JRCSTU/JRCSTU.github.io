@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        .controls {
+            background: #343a40;
+            width: 100%;
+        }
+
+        .controls button {
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            color: #BBBBBB;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+
+        .controls button:hover {
+            background-color: #555;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        #iframe {
+            flex-grow: 1;
+        }
+
+        #index {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sh-ico {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-left: 8px;
+            padding-top: 3px;
+            vertical-align: middle;
+            content: "";
+            background: no-repeat center center;
+            background-size: 100% 100%;
+        }
+
+        .sh-ico-compress {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3'/%3E%3C/svg%3E");
+        }
+
+        .sh-ico-expand {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'/%3E%3C/svg%3E");
+        }
+    </style>
+    <!-- Required Javascript -->
+    
+    
+</head>
+<body onload="_onload()">
+<div id="index" style="display: none; height: 100%">
+    <div class="controls">
+        <button id="btnFullScreen" class="sh-ico sh-ico-expand"
+                style="display: none"
+                onclick="FullScreen()"
+                title="Enter/Exit Full Screen">
+        </button>
+        <button id="btnBack" onclick="onBack(event)" title="Go back">
+            &lt;
+        </button>
+        <button id="btnForward" onclick="onForward(event)" title="Go forward">
+            &gt;
+        </button>
+    </div>
+    <iframe id="iframe" allowfullscreen frameborder="0"></iframe>
+</div>
+<div id="content" style="background: white; display: none"> <div class="highlight" style="background: transparent"><pre style="line-height: 125%;"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(dsp, outputs<span style="color: #666666">=</span>[<span style="color: #BA2121">&quot;shift_points&quot;</span>])
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">generate_gears</span>(
+    TraceTimes,
+    GearSequenceStarts,
+    GearNames,
+    AverageGear,
+    Max95EngineSpeedFinal,
+    RequiredVehicleSpeeds,
+    requiredPowersF,
+    RequiredEngineSpeeds,
+    PossibleGearsByEngineSpeed,
+    AvailablePowersFinal,
+    InitialRequiredEngineSpeeds,
+    InitialAvailablePowers,
+    FullPowerCurve,
+    EngineSpeedAtGearAtMaxRequiredSpeed,
+    EngineSpeedAtGearAtMaxVehicleSpeed,
+    MaxEngineSpeed,
+    MaxVehicleSpeedFinal,
+    GearAtMaxVehicleSpeedFinal,
+    MinDrive1st,
+    MinDrive1stTo2nd,
+    MinDrive2ndDecel,
+    MinDrive2nd,
+    MinDriveGreater2nd,
+    InitialGearsFinalAfterClutch,
+    ClutchDisengagedFinal,
+    ClutchUndefinedFinal,
+    ClutchHST,
+    CorrectionsCells,
+    ChecksumVxGear,
+):
+<span style="color: #bbbbbb">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Assign outputs in the final dictionary</span>
+
+<span style="color: #BA2121; font-style: italic">    :param TraceTimes:</span>
+<span style="color: #BA2121; font-style: italic">        Times for each vehicle speed required re-sampled in 1Hz</span>
+<span style="color: #BA2121; font-style: italic">    :type TraceTimes: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param GearSequenceStarts:</span>
+<span style="color: #BA2121; font-style: italic">        Array that contains the position of the gear sequence start for the different</span>
+<span style="color: #BA2121; font-style: italic">        gears.</span>
+<span style="color: #BA2121; font-style: italic">    :type GearSequenceStarts: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param GearNames:</span>
+<span style="color: #BA2121; font-style: italic">        The name of gear to used by each gear sequence starts.</span>
+<span style="color: #BA2121; font-style: italic">    :type GearNames: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param AverageGear:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (5) average gear</span>
+<span style="color: #BA2121; font-style: italic">        In order to enable the assessment of the correctness of the calculation,</span>
+<span style="color: #BA2121; font-style: italic">        the average gear for v &gt;= 1 km/h, rounded to four places of decimal,</span>
+<span style="color: #BA2121; font-style: italic">        shall be calculated and recorded.</span>
+<span style="color: #BA2121; font-style: italic">    :type AverageGear: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param Max95EngineSpeedFinal:</span>
+<span style="color: #BA2121; font-style: italic">         Annex 2 (2g) n_max1 = n_95_high adjusted</span>
+<span style="color: #BA2121; font-style: italic">         If n_95_high cannot be determined because the engine speed is limited to</span>
+<span style="color: #BA2121; font-style: italic">         a lower value n_lim for all gears and the corresponding full load power</span>
+<span style="color: #BA2121; font-style: italic">         is higher than 95 per cent of rated power, n_95_high shall be set to n_lim.</span>
+<span style="color: #BA2121; font-style: italic">    :type Max95EngineSpeedFinal: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param RequiredVehicleSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        The vehicle speed required for the whole cycle re-sampled in 1Hz</span>
+<span style="color: #BA2121; font-style: italic">    :type RequiredVehicleSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param requiredPowersF:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (3.1) P_required,j</span>
+<span style="color: #BA2121; font-style: italic">        The power required to overcome driving resistance and to accelerate</span>
+<span style="color: #BA2121; font-style: italic">        for each second j of the cycle trace.</span>
+<span style="color: #BA2121; font-style: italic">    :type requiredPowersF: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param RequiredEngineSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (3.2) n_i,j</span>
+<span style="color: #BA2121; font-style: italic">        The engine speeds required</span>
+<span style="color: #BA2121; font-style: italic">        for each gear i from 1 to ng and</span>
+<span style="color: #BA2121; font-style: italic">        for each second j of the cycle trace.</span>
+<span style="color: #BA2121; font-style: italic">        Note that this are the uncorrected values n_i,j</span>
+<span style="color: #BA2121; font-style: italic">        ie without the increments required by Annex 2 (3.3)</span>
+<span style="color: #BA2121; font-style: italic">    :type RequiredEngineSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param PossibleGearsByEngineSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        The possible gear that can be used for each second.</span>
+<span style="color: #BA2121; font-style: italic">    :type PossibleGearsByEngineSpeed: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param AvailablePowersFinal:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (3.4) P_available_i,j</span>
+<span style="color: #BA2121; font-style: italic">        The power available for each gear i from 1 to ng and for each second j</span>
+<span style="color: #BA2121; font-style: italic">        of the cycle trace, after check vehicle speed.</span>
+<span style="color: #BA2121; font-style: italic">        Note that this power values are determined from uncorrected values n_i,j</span>
+<span style="color: #BA2121; font-style: italic">        i.e. without the engine speed increments required by Annex 2 (3.3)</span>
+<span style="color: #BA2121; font-style: italic">    :type AvailablePowersFinal: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InitialRequiredEngineSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        The initial engine speeds required for each gear i from 1 to ng and</span>
+<span style="color: #BA2121; font-style: italic">        for each second j of the cycle trace.</span>
+<span style="color: #BA2121; font-style: italic">    :type InitialRequiredEngineSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InitialAvailablePowers:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (3.4) P_available_i,j (initials)</span>
+<span style="color: #BA2121; font-style: italic">        The power available for each gear i from 1 to ng and for each second j</span>
+<span style="color: #BA2121; font-style: italic">        of the cycle trace.</span>
+<span style="color: #BA2121; font-style: italic">        Note that this power values are determined from uncorrected values n_i,j</span>
+<span style="color: #BA2121; font-style: italic">        i.e. without the engine speed increments required by Annex 2 (3.3)</span>
+<span style="color: #BA2121; font-style: italic">    :type InitialAvailablePowers: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param FullPowerCurve:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2h) and (3.4) n ==&gt; P_wot(n), ASM</span>
+<span style="color: #BA2121; font-style: italic">        The full load power curve over the engine speed range.</span>
+<span style="color: #BA2121; font-style: italic">    :type FullPowerCurve: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param EngineSpeedAtGearAtMaxRequiredSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        The engine speed at gear maximum required speed</span>
+<span style="color: #BA2121; font-style: italic">    :type EngineSpeedAtGearAtMaxRequiredSpeed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param EngineSpeedAtGearAtMaxVehicleSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        The engine speed at gear at maximum vehicle speed</span>
+<span style="color: #BA2121; font-style: italic">    :type EngineSpeedAtGearAtMaxVehicleSpeed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MaxEngineSpeed:</span>
+<span style="color: #BA2121; font-style: italic">        The maximum engine speed</span>
+<span style="color: #BA2121; font-style: italic">    :type MaxEngineSpeed: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MaxVehicleSpeedFinal:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2g, 2i) v_max,vehicle</span>
+<span style="color: #BA2121; font-style: italic">        The maximum vehicle speed reachable</span>
+<span style="color: #BA2121; font-style: italic">        using the gear in which the maximum vehicle speed can be reached.</span>
+<span style="color: #BA2121; font-style: italic">    :type MaxVehicleSpeedFinal: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param GearAtMaxVehicleSpeedFinal:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2i) ng_vmax</span>
+<span style="color: #BA2121; font-style: italic">        The gear in which the maximum vehicle speed is reached.</span>
+<span style="color: #BA2121; font-style: italic">    :type GearAtMaxVehicleSpeedFinal: integer</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MinDrive1st:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2k) n_min_drive = n_idle for n_gear:1</span>
+<span style="color: #BA2121; font-style: italic">        The minimum engine speed when the vehicle is in motion.</span>
+<span style="color: #BA2121; font-style: italic">        This is the maximum of calculated value and input parameter value.</span>
+<span style="color: #BA2121; font-style: italic">    :type MinDrive1st: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MinDrive1stTo2nd:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2ka) n_min_drive = 1.15 x n_idle for n_gear:1-&gt;2</span>
+<span style="color: #BA2121; font-style: italic">        The minimum engine speed for transitions from first to second gear.</span>
+<span style="color: #BA2121; font-style: italic">        This is the maximum of calculated value and input parameter value.</span>
+<span style="color: #BA2121; font-style: italic">    :type MinDrive1stTo2nd: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MinDrive2ndDecel:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2kb) n_min_drive = n_idle for n_gear:2</span>
+<span style="color: #BA2121; font-style: italic">        The minimum engine speed for decelerations to standstill in second gear.</span>
+<span style="color: #BA2121; font-style: italic">        This is the maximum of calculated value and input parameter value.</span>
+<span style="color: #BA2121; font-style: italic">    :type MinDrive2ndDecel: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MinDrive2nd:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2kc) n_min_drive = 0.9 x n_idle for n_gear:2</span>
+<span style="color: #BA2121; font-style: italic">        The minimum engine speed for all other driving conditions in second gear.</span>
+<span style="color: #BA2121; font-style: italic">        This is the maximum of calculated value and input parameter value.</span>
+<span style="color: #BA2121; font-style: italic">    :type MinDrive2nd: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param MinDriveGreater2nd:</span>
+<span style="color: #BA2121; font-style: italic">        Annex 2 (2k) n_min_drive = n_idle + 0.125 × ( n_rated - n_idle ) for n_gear:3..</span>
+<span style="color: #BA2121; font-style: italic">        This value shall be referred to as n_min_drive_set.</span>
+<span style="color: #BA2121; font-style: italic">        The minimum engine speed for all driving conditions in gears greater than 2.</span>
+<span style="color: #BA2121; font-style: italic">        This is the maximum of calculated value and input parameter value.</span>
+<span style="color: #BA2121; font-style: italic">    :type MinDriveGreater2nd: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param InitialGearsFinalAfterClutch:</span>
+<span style="color: #BA2121; font-style: italic">        The initial gears after apply corrections calculated by each second and the</span>
+<span style="color: #BA2121; font-style: italic">        interleave clutch.</span>
+<span style="color: #BA2121; font-style: italic">    :type InitialGearsFinalAfterClutch: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchDisengagedFinal:</span>
+<span style="color: #BA2121; font-style: italic">        The clutch disengaged by each second after apply the interleave clutch</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchDisengagedFinal: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchUndefinedFinal:</span>
+<span style="color: #BA2121; font-style: italic">        The clutch undefined by each second after apply the interleave clutch</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchUndefinedFinal: boolean array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ClutchHST:</span>
+<span style="color: #BA2121; font-style: italic">        Array of clutch state names as used by the Heinz Steven Tool (HST).</span>
+<span style="color: #BA2121; font-style: italic">    :type ClutchHST: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param CorrectionsCells:</span>
+<span style="color: #BA2121; font-style: italic">        Array of gear correction strings for debugging. This contains a historic</span>
+<span style="color: #BA2121; font-style: italic">        transformation of each gear during all execution and the transformation</span>
+<span style="color: #BA2121; font-style: italic">        applied.</span>
+<span style="color: #BA2121; font-style: italic">    :type CorrectionsCells: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ChecksumVxGear:</span>
+<span style="color: #BA2121; font-style: italic">        Checksum of v * gear for v &gt;= 1 km/h rounded to four places of decimal.</span>
+<span style="color: #BA2121; font-style: italic">    :type ChecksumVxGear: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :returns:</span>
+<span style="color: #BA2121; font-style: italic">        - shift_points (:py:class:`dict`):</span>
+<span style="color: #BA2121; font-style: italic">            Dictionary that contains the all input parameters with the expected</span>
+<span style="color: #BA2121; font-style: italic">            output format.</span>
+
+<span style="color: #BA2121; font-style: italic">    .. note::</span>
+<span style="color: #BA2121; font-style: italic">        A clutch disengagement and a gear change cannot be indicated at the same time</span>
+<span style="color: #BA2121; font-style: italic">        and the clutch disengagement will therefore be indicated one second earlier.</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #3D7B7B; font-style: italic"># This is a test parameter that can be included in the inputs in the future</span>
+    ReturnAdjustedEngSpeedsAndAvlPowers <span style="color: #666666">=</span> <span style="color: #008000; font-weight: bold">True</span>
+
+    <span style="color: #008000; font-weight: bold">if</span> ReturnAdjustedEngSpeedsAndAvlPowers:
+        RequiredEngineSpeeds[np<span style="color: #666666">.</span>where(<span style="color: #666666">~</span>(PossibleGearsByEngineSpeed <span style="color: #666666">==</span> <span style="color: #666666">1</span>))] <span style="color: #666666">=</span> np<span style="color: #666666">.</span>nan
+        AvailablePowersFinal[np<span style="color: #666666">.</span>where(<span style="color: #666666">~</span>(PossibleGearsByEngineSpeed <span style="color: #666666">==</span> <span style="color: #666666">1</span>))] <span style="color: #666666">=</span> np<span style="color: #666666">.</span>nan
+        RequiredEngineSpeedsOutput <span style="color: #666666">=</span> np<span style="color: #666666">.</span>round(RequiredEngineSpeeds, <span style="color: #666666">4</span>)
+        AvailablePowersOutput <span style="color: #666666">=</span> np<span style="color: #666666">.</span>round(AvailablePowersFinal, <span style="color: #666666">4</span>)
+    <span style="color: #008000; font-weight: bold">else</span>:
+        RequiredEngineSpeedsOutput <span style="color: #666666">=</span> np<span style="color: #666666">.</span>round(InitialRequiredEngineSpeeds, <span style="color: #666666">4</span>)
+        AvailablePowersOutput <span style="color: #666666">=</span> np<span style="color: #666666">.</span>round(InitialAvailablePowers, <span style="color: #666666">4</span>)
+
+    shift_points <span style="color: #666666">=</span> {
+        <span style="color: #BA2121">&quot;CalculatedGearsOutput&quot;</span>: np<span style="color: #666666">.</span>vstack(
+            (TraceTimes[GearSequenceStarts], GearNames)
+        )<span style="color: #666666">.</span>T,
+        <span style="color: #BA2121">&quot;AverageGearOutput&quot;</span>: np<span style="color: #666666">.</span>round(AverageGear, <span style="color: #666666">4</span>),
+        <span style="color: #BA2121">&quot;PowerCurveOutput&quot;</span>: FullPowerCurve,
+        <span style="color: #BA2121">&quot;AdjustedMax95EngineSpeed&quot;</span>: Max95EngineSpeedFinal,
+        <span style="color: #BA2121">&quot;TraceTimesOutput&quot;</span>: TraceTimes,
+        <span style="color: #BA2121">&quot;RequiredVehicleSpeedsOutput&quot;</span>: RequiredVehicleSpeeds,
+        <span style="color: #BA2121">&quot;RequiredPowersOutput&quot;</span>: requiredPowersF,
+        <span style="color: #BA2121">&quot;RequiredEngineSpeedsOutput&quot;</span>: RequiredEngineSpeedsOutput,
+        <span style="color: #BA2121">&quot;AvailablePowersOutput&quot;</span>: AvailablePowersOutput,
+        <span style="color: #BA2121">&quot;MaxEngineSpeedCycleOutput&quot;</span>: EngineSpeedAtGearAtMaxRequiredSpeed,
+        <span style="color: #BA2121">&quot;MaxEngineSpeedReachableOutput&quot;</span>: EngineSpeedAtGearAtMaxVehicleSpeed,
+        <span style="color: #BA2121">&quot;MaxEngineSpeedOutput&quot;</span>: MaxEngineSpeed,
+        <span style="color: #BA2121">&quot;MaxVehicleSpeedCycleOutput&quot;</span>: np<span style="color: #666666">.</span>max(RequiredVehicleSpeeds),
+        <span style="color: #BA2121">&quot;MaxVehicleSpeedReachableOutput&quot;</span>: MaxVehicleSpeedFinal,
+        <span style="color: #BA2121">&quot;GearMaxVehicleSpeedReachableOutput&quot;</span>: GearAtMaxVehicleSpeedFinal <span style="color: #666666">+</span> <span style="color: #666666">1</span>,
+        <span style="color: #BA2121">&quot;MinDriveEngineSpeed1stOutput&quot;</span>: <span style="color: #008000">format</span>(MinDrive1st, <span style="color: #BA2121">&quot;.1f&quot;</span>),
+        <span style="color: #BA2121">&quot;MinDriveEngineSpeed1stTo2ndOutput&quot;</span>: <span style="color: #008000">format</span>(MinDrive1stTo2nd, <span style="color: #BA2121">&quot;.1f&quot;</span>),
+        <span style="color: #BA2121">&quot;MinDriveEngineSpeed2ndDecelOutput&quot;</span>: <span style="color: #008000">format</span>(MinDrive2ndDecel, <span style="color: #BA2121">&quot;.1f&quot;</span>),
+        <span style="color: #BA2121">&quot;MinDriveEngineSpeed2ndOutput&quot;</span>: <span style="color: #008000">format</span>(MinDrive2nd, <span style="color: #BA2121">&quot;.1f&quot;</span>),
+        <span style="color: #BA2121">&quot;MinDriveEngineSpeedGreater2ndOutput&quot;</span>: <span style="color: #008000">format</span>(MinDriveGreater2nd, <span style="color: #BA2121">&quot;.1f&quot;</span>),
+        <span style="color: #BA2121">&quot;GearsOutput&quot;</span>: InitialGearsFinalAfterClutch<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>),
+        <span style="color: #BA2121">&quot;ClutchDisengagedOutput&quot;</span>: ClutchDisengagedFinal<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>),
+        <span style="color: #BA2121">&quot;ClutchUndefinedOutput&quot;</span>: ClutchUndefinedFinal<span style="color: #666666">.</span>astype(<span style="color: #008000">int</span>),
+        <span style="color: #BA2121">&quot;ClutchHSTOutput&quot;</span>: ClutchHST,
+        <span style="color: #BA2121">&quot;GearCorrectionsOutput&quot;</span>: CorrectionsCells,
+        <span style="color: #BA2121">&quot;ChecksumVxGearOutput&quot;</span>: np<span style="color: #666666">.</span>round(ChecksumVxGear, <span style="color: #666666">4</span>),
+    }
+
+    <span style="color: #008000; font-weight: bold">return</span> shift_points
+</pre></div>
+</div>
+
+<script>
+    var id, hist = {i: -1, list: []}, isFull;
+
+    function FullScreen() {
+        var el = document.getElementById("btnFullScreen");
+        if (isFull) {
+            closeFullscreen();
+            isFull = false;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-compress", "sh-ico-expand"));
+        } else {
+            openFullscreen();
+            isFull = true;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-expand", "sh-ico-compress"));
+        }
+    }
+
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function setURLParam(key, value) {
+        let uri = window.location.href,
+            re = new RegExp("([?&])" + key + "=.*?(&|$)", "i"),
+            separator = uri.indexOf('?') !== -1 ? "&" : "?";
+        if (uri.match(re)) {
+            return uri.replace(re, '$1' + key + "=" + encodeURI(value) + '$2');
+        } else {
+            return uri + separator + key + "=" + encodeURI(value);
+        }
+    }
+
+    function iframeLoad(e) {
+        e.preventDefault();
+        document.getElementById("iframe").contentWindow.postMessage({
+            id: id,
+            action: 'id'
+        }, '*');
+    }
+
+    function onBack(e) {
+        e.preventDefault();
+        if (hist.i > 0) {
+            hist.i--;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function onForward(e) {
+        e.preventDefault();
+        if (hist.i + 1 < hist.list.length) {
+            hist.i++;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function setIframe(src) {
+        document.getElementById("iframe").src = src
+    }
+
+    function closeFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+        }
+    }
+
+    function isFullscreenSupported() {
+        let elem = document.body;
+        return elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen
+    }
+
+    function openFullscreen() {
+        let elem = document.body;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen()
+        } else if (elem.mozRequestFullScreen) { /* Firefox */
+            elem.mozRequestFullScreen()
+        } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+            elem.webkitRequestFullscreen()
+        } else if (elem.msRequestFullscreen) { /* IE/Edge */
+            elem.msRequestFullscreen()
+        }
+    }
+
+    function _onload() {
+        if (getURLParam("controls") === "true") {
+            document.getElementById("iframe").onload = iframeLoad;
+            document.getElementById("index").style.display = "flex";
+            if (isFullscreenSupported())
+                document.getElementById("btnFullScreen").style.display = "inline-block";
+            id = Date.now();
+            setIframe(setURLParam("controls", "false"));
+            window.addEventListener('message', function (event) {
+                if (event.data.id === id) {
+                    if (event.data.action === 'url') {
+                        let href = event.data.url;
+                        if (hist.list[hist.i] !== href) {
+                            hist.i++;
+                            hist.list = hist.list.slice(0, hist.i);
+                            hist.list.push(href);
+                        }
+                        if (hist.i > 0) {
+                            document.getElementById("btnBack").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnBack").style.opacity = "0.5"
+                        }
+                        if (hist.i + 1 < hist.list.length) {
+                            document.getElementById("btnForward").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnForward").style.opacity = "0.5"
+                        }
+                    }
+                }
+            });
+        } else {
+            refreshIntervalId = setInterval(sendUrl, 100);
+            setTimeout(function () {
+                clearInterval(refreshIntervalId)
+            }, 30000);
+            document.getElementById("content").style.display = "block";
+            var el = document.getElementById(getURLParam("id") || 'graph0');
+            if (el)
+                if (el.getAttribute('class').indexOf('node') !== -1) {
+                    var bound = el.getBoundingClientRect();
+                    window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                    el.setAttribute('class', el.getAttribute('class') + " on");
+                } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                    el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+                }
+        }
+        let parser = new DOMParser();
+        for (let e of document.getElementsByTagName('viz')) {
+            let out, digraph = e.getAttribute('digraph'), options = {
+                engine: e.getAttribute('engine') || 'dot',
+                format: "svg"
+            };
+            try {
+                out = parser.parseFromString(Viz(digraph, options), "image/svg+xml").documentElement;
+            } catch (e) {
+                out = document.createElement('div')
+                out.setAttribute('class', 'viz error')
+                out.innerHTML = e.message === undefined ? "An error occurred while processing the graph input." : e.message;
+            }
+            e.appendChild(out);
+        }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null, refreshIntervalId;
+    window.addEventListener('message', function (event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin || 'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>

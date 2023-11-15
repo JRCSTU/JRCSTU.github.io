@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css">
+        svg.on {
+            border: 4px solid #008CFF;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child path:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        .node.on g:first-of-type a:first-child polygon:first-child {
+            stroke: #008CFF;
+            stroke-width: 4;
+            animation: blink-animation 1s linear;
+            -webkit-animation: blink-animation 1s linear;
+        }
+
+        @keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        @-webkit-keyframes blink-animation {
+            to {
+                stroke-width: 0;
+                border-width: 0;
+            }
+        }
+
+        .controls {
+            background: #343a40;
+            width: 100%;
+        }
+
+        .controls button {
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            color: #BBBBBB;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+
+        .controls button:hover {
+            background-color: #555;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        #iframe {
+            flex-grow: 1;
+        }
+
+        #index {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sh-ico {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-left: 8px;
+            padding-top: 3px;
+            vertical-align: middle;
+            content: "";
+            background: no-repeat center center;
+            background-size: 100% 100%;
+        }
+
+        .sh-ico-compress {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3'/%3E%3C/svg%3E");
+        }
+
+        .sh-ico-expand {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg fill='none' height='24' stroke='%23BBBBBB' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'/%3E%3C/svg%3E");
+        }
+    </style>
+    <!-- Required Javascript -->
+    
+    
+</head>
+<body onload="_onload()">
+<div id="index" style="display: none; height: 100%">
+    <div class="controls">
+        <button id="btnFullScreen" class="sh-ico sh-ico-expand"
+                style="display: none"
+                onclick="FullScreen()"
+                title="Enter/Exit Full Screen">
+        </button>
+        <button id="btnBack" onclick="onBack(event)" title="Go back">
+            &lt;
+        </button>
+        <button id="btnForward" onclick="onForward(event)" title="Go forward">
+            &gt;
+        </button>
+    </div>
+    <iframe id="iframe" allowfullscreen frameborder="0"></iframe>
+</div>
+<div id="content" style="background: white; display: none"> <div class="highlight" style="background: transparent"><pre style="line-height: 125%;"><span></span><span style="color: #AA22FF">@sh</span><span style="color: #666666">.</span>add_function(
+    dsp,
+    outputs<span style="color: #666666">=</span>[
+        <span style="color: #BA2121">&quot;downscaled&quot;</span>,
+        <span style="color: #BA2121">&quot;downscaledVehicleSpeeds&quot;</span>,
+        <span style="color: #BA2121">&quot;requiredToRatedPowerRatios&quot;</span>,
+        <span style="color: #BA2121">&quot;calculatedDownscalingFactors&quot;</span>,
+        <span style="color: #BA2121">&quot;downscalingFactor&quot;</span>,
+        <span style="color: #BA2121">&quot;requiredToRatedPowerRatio&quot;</span>,
+    ],
+)
+<span style="color: #008000; font-weight: bold">def</span> <span style="color: #0000FF">downscale_trace</span>(
+    r0,
+    a1,
+    b1,
+    UseCalculatedDownscalingPercentage,
+    DownscalingPercentage,
+    requiredPowers,
+    RatedEnginePower,
+    ScalingStartTimes,
+    ScalingCorrectionTimes,
+    ScalingEndTimes,
+    originalTraceTimes,
+    ScalingAlgorithms,
+    originalVehicleSpeeds,
+    ApplyDownscaling,
+    accelerations,
+):
+<span style="color: #bbbbbb">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;</span>
+<span style="color: #BA2121; font-style: italic">    Downscaling applies to very low powered class 1 vehicles or vehicles with power to mass ratios close to class</span>
+<span style="color: #BA2121; font-style: italic">    borderlines, thus causing driveability issues.</span>
+
+<span style="color: #BA2121; font-style: italic">    :param r0:</span>
+<span style="color: #BA2121; font-style: italic">        Factor to determine the downscaling factor</span>
+<span style="color: #BA2121; font-style: italic">    :type r0: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param a1:</span>
+<span style="color: #BA2121; font-style: italic">        Factor to determine the downscaling factor</span>
+<span style="color: #BA2121; font-style: italic">    :type a1: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param b1:</span>
+<span style="color: #BA2121; font-style: italic">        Factor to determine the downscaling factor</span>
+<span style="color: #BA2121; font-style: italic">    :type b1: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param UseCalculatedDownscalingPercentage:</span>
+<span style="color: #BA2121; font-style: italic">        Boolean variable to check if is necessary calculates the downscaling factor</span>
+<span style="color: #BA2121; font-style: italic">    :type UseCalculatedDownscalingPercentage: boolean</span>
+
+<span style="color: #BA2121; font-style: italic">    :param DownscalingPercentage:</span>
+<span style="color: #BA2121; font-style: italic">        The degree of downscaling. This value will only be used if the input parameter</span>
+<span style="color: #BA2121; font-style: italic">        UseCalculatedDownscalingPercentage is false.</span>
+<span style="color: #BA2121; font-style: italic">    :type DownscalingPercentage: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param requiredPowers:</span>
+<span style="color: #BA2121; font-style: italic">        The power required to overcome driving resistance and to accelerate.</span>
+<span style="color: #BA2121; font-style: italic">    :type requiredPowers: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param RatedEnginePower:</span>
+<span style="color: #BA2121; font-style: italic">        The maximum rated engine required</span>
+<span style="color: #BA2121; font-style: italic">    :type RatedEnginePower: float</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ScalingStartTimes:</span>
+<span style="color: #BA2121; font-style: italic">         Contains the start times of the segments to scale in seconds.</span>
+<span style="color: #BA2121; font-style: italic">    :type ScalingStartTimes: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ScalingCorrectionTimes:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the times to begin the scaling correction at in seconds. The size must correspond to the size of</span>
+<span style="color: #BA2121; font-style: italic">        ScalingStartTimes. Each value must be between the corresponding start and end times.</span>
+<span style="color: #BA2121; font-style: italic">    :type ScalingCorrectionTimes: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ScalingEndTimes:</span>
+<span style="color: #BA2121; font-style: italic">        Contains the end times of the segments to scale in seconds. The size must correspond to the</span>
+<span style="color: #BA2121; font-style: italic">        size of ScalingStartTimes.</span>
+<span style="color: #BA2121; font-style: italic">    :type ScalingEndTimes: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param originalTraceTimes:</span>
+<span style="color: #BA2121; font-style: italic">        The times used in the whole trace.</span>
+<span style="color: #BA2121; font-style: italic">    :type originalTraceTimes: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ScalingAlgorithms:</span>
+<span style="color: #BA2121; font-style: italic">        Represents a strings, that denotes the algorithm to use for the specific segment.</span>
+<span style="color: #BA2121; font-style: italic">    :type ScalingAlgorithms: String</span>
+
+<span style="color: #BA2121; font-style: italic">    :param originalVehicleSpeeds:</span>
+<span style="color: #BA2121; font-style: italic">        The speeds used in the whole trace.</span>
+<span style="color: #BA2121; font-style: italic">    :type originalVehicleSpeeds: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :param ApplyDownscaling:</span>
+<span style="color: #BA2121; font-style: italic">        Specifies if the trace shall be downscaled.</span>
+<span style="color: #BA2121; font-style: italic">    :type ApplyDownscaling: boolen</span>
+
+<span style="color: #BA2121; font-style: italic">    :param accelerations:</span>
+<span style="color: #BA2121; font-style: italic">        Accelerations from the whole WLTC cycles.</span>
+<span style="color: #BA2121; font-style: italic">    :type accelerations: array</span>
+
+<span style="color: #BA2121; font-style: italic">    :returns:</span>
+<span style="color: #BA2121; font-style: italic">        - downscaled (:py:class:`boolean numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            Array that contains the values that have been downscaled as True</span>
+<span style="color: #BA2121; font-style: italic">        - downscaledVehicleSpeeds (:py:class:`boolean numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The vehicle speed after have been downscaled</span>
+<span style="color: #BA2121; font-style: italic">        - requiredToRatedPowerRatios (:py:class:`numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The required power ratios after apply the downscaling factor</span>
+<span style="color: #BA2121; font-style: italic">        - calculatedDownscalingFactors (:py:class:`numpy.array`):</span>
+<span style="color: #BA2121; font-style: italic">            The downscaling factor for each time of the whole cycle</span>
+<span style="color: #BA2121; font-style: italic">        - downscalingFactor (:py:class:`float`):</span>
+<span style="color: #BA2121; font-style: italic">            The downscaling factor applicable</span>
+<span style="color: #BA2121; font-style: italic">        - requiredToRatedPowerRatio (:py:class:`float`):</span>
+<span style="color: #BA2121; font-style: italic">            The maximum required to rated power ratio</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+
+    <span style="color: #3D7B7B; font-style: italic"># if DownscalingPercentage * 100 &lt;= 1:</span>
+    <span style="color: #3D7B7B; font-style: italic">#    ApplyDownscaling = False</span>
+
+    downscalingFactor, requiredToRatedPowerRatio <span style="color: #666666">=</span> _calculate_downscaling_factor(
+        r0,
+        a1,
+        b1,
+        UseCalculatedDownscalingPercentage,
+        DownscalingPercentage,
+        requiredPowers,
+        RatedEnginePower,
+    )
+
+    downscaledVehicleSpeeds <span style="color: #666666">=</span> np<span style="color: #666666">.</span>copy(originalVehicleSpeeds)
+
+    <span style="color: #008000; font-weight: bold">if</span> ApplyDownscaling:
+        <span style="color: #008000; font-weight: bold">if</span> ScalingAlgorithms <span style="color: #666666">==</span> <span style="color: #BA2121">&quot;WLTP&quot;</span>:
+            downscaledVehicleSpeeds <span style="color: #666666">=</span> _algorithm_wltp(
+                ScalingStartTimes,
+                ScalingCorrectionTimes,
+                ScalingEndTimes,
+                originalTraceTimes,
+                originalVehicleSpeeds,
+                downscalingFactor,
+                accelerations,
+            )
+
+    indexing <span style="color: #666666">=</span> [
+        <span style="color: #666666">1</span> <span style="color: #008000; font-weight: bold">if</span> ScalingStartTimes <span style="color: #666666">&lt;=</span> i <span style="color: #AA22FF; font-weight: bold">and</span> i <span style="color: #666666">&lt;=</span> ScalingEndTimes <span style="color: #008000; font-weight: bold">else</span> <span style="color: #666666">0</span>
+        <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #AA22FF; font-weight: bold">in</span> originalTraceTimes
+    ]
+
+    requiredToRatedPowerRatios <span style="color: #666666">=</span> _calculate_required_to_rated_power_ratio(
+        indexing, requiredPowers, RatedEnginePower
+    )
+
+    (
+        calculatedDownscalingFactors,
+        requiredToRatedPowerRatio,
+    ) <span style="color: #666666">=</span> _calculate_downscaling_factor(
+        r0,
+        a1,
+        b1,
+        UseCalculatedDownscalingPercentage,
+        DownscalingPercentage,
+        requiredPowers,
+        RatedEnginePower,
+        indexing,
+    )
+
+    downscaled <span style="color: #666666">=</span> [
+        <span style="color: #666666">1</span> <span style="color: #008000; font-weight: bold">if</span> downscaledVehicleSpeeds[i] <span style="color: #666666">!=</span> originalVehicleSpeeds[i] <span style="color: #008000; font-weight: bold">else</span> <span style="color: #666666">0</span>
+        <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #AA22FF; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #008000">len</span>(downscaledVehicleSpeeds))
+    ]
+
+    <span style="color: #008000; font-weight: bold">if</span> calculatedDownscalingFactors <span style="color: #666666">&lt;=</span> <span style="color: #666666">0.01</span>:
+        calculatedDownscalingFactors <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+
+    <span style="color: #008000; font-weight: bold">return</span> (
+        downscaled,
+        downscaledVehicleSpeeds,
+        requiredToRatedPowerRatios,
+        calculatedDownscalingFactors,
+        downscalingFactor,
+        requiredToRatedPowerRatio,
+    )
+</pre></div>
+</div>
+
+<script>
+    var id, hist = {i: -1, list: []}, isFull;
+
+    function FullScreen() {
+        var el = document.getElementById("btnFullScreen");
+        if (isFull) {
+            closeFullscreen();
+            isFull = false;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-compress", "sh-ico-expand"));
+        } else {
+            openFullscreen();
+            isFull = true;
+            el.setAttribute('class', el.getAttribute('class').replace("sh-ico-expand", "sh-ico-compress"));
+        }
+    }
+
+    function getURLParam(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        } else {
+            return decodeURI(results[1]) || 0;
+        }
+    }
+
+    function setURLParam(key, value) {
+        let uri = window.location.href,
+            re = new RegExp("([?&])" + key + "=.*?(&|$)", "i"),
+            separator = uri.indexOf('?') !== -1 ? "&" : "?";
+        if (uri.match(re)) {
+            return uri.replace(re, '$1' + key + "=" + encodeURI(value) + '$2');
+        } else {
+            return uri + separator + key + "=" + encodeURI(value);
+        }
+    }
+
+    function iframeLoad(e) {
+        e.preventDefault();
+        document.getElementById("iframe").contentWindow.postMessage({
+            id: id,
+            action: 'id'
+        }, '*');
+    }
+
+    function onBack(e) {
+        e.preventDefault();
+        if (hist.i > 0) {
+            hist.i--;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function onForward(e) {
+        e.preventDefault();
+        if (hist.i + 1 < hist.list.length) {
+            hist.i++;
+            setIframe(hist.list[hist.i])
+        }
+    }
+
+    function setIframe(src) {
+        document.getElementById("iframe").src = src
+    }
+
+    function closeFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+        }
+    }
+
+    function isFullscreenSupported() {
+        let elem = document.body;
+        return elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen
+    }
+
+    function openFullscreen() {
+        let elem = document.body;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen()
+        } else if (elem.mozRequestFullScreen) { /* Firefox */
+            elem.mozRequestFullScreen()
+        } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+            elem.webkitRequestFullscreen()
+        } else if (elem.msRequestFullscreen) { /* IE/Edge */
+            elem.msRequestFullscreen()
+        }
+    }
+
+    function _onload() {
+        if (getURLParam("controls") === "true") {
+            document.getElementById("iframe").onload = iframeLoad;
+            document.getElementById("index").style.display = "flex";
+            if (isFullscreenSupported())
+                document.getElementById("btnFullScreen").style.display = "inline-block";
+            id = Date.now();
+            setIframe(setURLParam("controls", "false"));
+            window.addEventListener('message', function (event) {
+                if (event.data.id === id) {
+                    if (event.data.action === 'url') {
+                        let href = event.data.url;
+                        if (hist.list[hist.i] !== href) {
+                            hist.i++;
+                            hist.list = hist.list.slice(0, hist.i);
+                            hist.list.push(href);
+                        }
+                        if (hist.i > 0) {
+                            document.getElementById("btnBack").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnBack").style.opacity = "0.5"
+                        }
+                        if (hist.i + 1 < hist.list.length) {
+                            document.getElementById("btnForward").style.opacity = "1"
+                        } else {
+                            document.getElementById("btnForward").style.opacity = "0.5"
+                        }
+                    }
+                }
+            });
+        } else {
+            refreshIntervalId = setInterval(sendUrl, 100);
+            setTimeout(function () {
+                clearInterval(refreshIntervalId)
+            }, 30000);
+            document.getElementById("content").style.display = "block";
+            var el = document.getElementById(getURLParam("id") || 'graph0');
+            if (el)
+                if (el.getAttribute('class').indexOf('node') !== -1) {
+                    var bound = el.getBoundingClientRect();
+                    window.scrollTo((bound.left + bound.right) / 2 - document.body.offsetWidth / 2, (bound.top + bound.bottom) / 2 - document.body.offsetHeight / 2);
+                    el.setAttribute('class', el.getAttribute('class') + " on");
+                } else if (el.getAttribute('class').indexOf('graph') !== -1) {
+                    el.parentNode.setAttribute('class', el.parentNode.getAttribute('class') + " on");
+                }
+        }
+        let parser = new DOMParser();
+        for (let e of document.getElementsByTagName('viz')) {
+            let out, digraph = e.getAttribute('digraph'), options = {
+                engine: e.getAttribute('engine') || 'dot',
+                format: "svg"
+            };
+            try {
+                out = parser.parseFromString(Viz(digraph, options), "image/svg+xml").documentElement;
+            } catch (e) {
+                out = document.createElement('div')
+                out.setAttribute('class', 'viz error')
+                out.innerHTML = e.message === undefined ? "An error occurred while processing the graph input." : e.message;
+            }
+            e.appendChild(out);
+        }
+    }
+
+    function getParentOrigin() {
+        try {
+            return parent.window.origin || "null";
+        } catch (exception) {
+            return "null"
+        }
+    }
+
+    function sendUrl() {
+        if (parent_iframe_id !== null && window.location.href !== url) {
+            url = window.location.href;
+            parent.postMessage({
+                id: parent_iframe_id,
+                url: url,
+                action: 'url'
+            }, '*');
+            clearInterval(refreshIntervalId);
+        }
+    }
+
+    var parent_iframe_id = null, url = null, refreshIntervalId;
+    window.addEventListener('message', function (event) {
+        var origin = event.origin === 'file:' ? 'null' : (event.origin || 'null');
+        if (origin === getParentOrigin())
+            if (parent_iframe_id === null && event.data.action === 'id') {
+                parent_iframe_id = event.data.id
+            }
+    });
+</script>
+</body>
+</html>
